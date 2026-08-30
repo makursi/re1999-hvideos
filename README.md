@@ -1,10 +1,17 @@
 # re1999-hvideos
 
-Batch-clips *Reverse: 1999* (Arcane Incident Department) raw videos into segments via a single `manifest.json`, exporting to `media/exports` with frame-accurate re-encoding (`--copy` for draft mode).
+Batch-clips *Reverse: 1999* (Arcane Incident Department) raw videos into segments via per-episode `manifest.json` files, and extracts frame screenshots via per-episode `frames.json` specs — all with frame-accurate encoding (`--copy` for draft clip mode).
 
 ```bash
-pnpm clip        # run the batch clipping
-pnpm test        # unit tests
+pnpm clip run            # batch-clip ALL episodes (media/exports/epN/manifest.json)
+pnpm clip run --ep ep1   # one episode
+pnpm clip run --dry-run  # validate + print plan, no encoding
+pnpm clip list           # list discovered per-episode manifests
+pnpm snap run            # extract screenshots (media/screenshots/epN/frames.json)
+pnpm snap run --ep ep1   # one episode
+pnpm snap run --dry-run  # validate + print plan
+pnpm snap list           # list discovered frames specs
+pnpm test                # unit tests
 pnpm lint / typecheck
 ```
 
@@ -12,10 +19,24 @@ pnpm lint / typecheck
 
 | Path | Purpose |
 |------|---------|
-| `src/` + `tests/` | CLI, manifest/ffmpeg/time modules, unit tests |
+| `src/` + `tests/` | CLIs (clip, snap), manifest/framespec/ffmpeg/time/discovery modules, unit tests |
 | `media/raw/` | Read-only source videos/audios — never modified |
 | `media/processed/` `clips/` `temp/` | Normalized / intermediate / scratch files |
-| `media/exports/` | Final exported clips (one file per segment) |
-| `manifest.json` | Single source of truth: `clips[]` with id, source, in, out |
-| `docs/` | Docs & ADRs (e.g. re-encode-first clipping) |
-| `scripts/` `public/` | Helpers & static assets |
+| `media/exports/epN/` | Exported clips (episode dirs) + this episode's `manifest.json` |
+| `media/screenshots/epN/` | Screenshot images (episode dirs) + this episode's `frames.json` |
+| `docs/` | Docs & ADRs (re-encode-first clipping, per-episode manifests, frame screenshots) |
+| `.agents/skills/re1999-video-clipping/` | Project skill + `verify-exports.mjs` |
+
+## Clips (pnpm clip)
+
+- Spec: `media/exports/epN/manifest.json` → `{ "clips": [{ "id", "source", "in", "out" }] }`
+- Output: `media/exports/epN/{id}.mp4` (one file per segment); `-o <dir>` overrides the output dir
+- Accurate mode: libx264 re-encode, `-ss` before `-i` (frame-exact), `-crf 20 -preset fast`; `--copy` = draft mode (snaps to keyframes, ±3.5–7s — see ADR-0001)
+
+## Screenshots (pnpm snap)
+
+- Spec: `media/screenshots/epN/frames.json` → `{ "screenshots": [{ "id", "source", "at", "format", "dir?" }] }`
+  - `format`: `jpg` | `png` | `webp`; `dir` optional, defaults to the spec's own directory
+- Output: `media/screenshots/epN/{id}.{format}`
+- Extracts from **raw sources at absolute timestamps** with frame-exact `-ss`-after-`-i` decoding (ADR-0004)
+- Quality defaults: png lossless, jpg `-q:v 2`, webp `-quality 90`

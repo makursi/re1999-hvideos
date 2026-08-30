@@ -15,23 +15,26 @@ media/
   raw/videos/1999-Arcane-Incident-Department-Animation/ep01~ep07.mp4   # 素材（只读、无音轨）
   raw/videos/README.md          # epNN → 中文标题映射（防信息丢失）
   audios/                       # 预留：将来配乐/配音
-  exports/                      # 导出产物 {id}.mp4（ASCII）
-  temp/ processed/ clips/       # 预留目录
+  exports/ep1~ep7/              # 剪辑产物 {id}.mp4 + 每集 manifest.json（跟随产物）
+  screenshots/ep1~ep7/          # 截图产物 {id}.{jpg|png|webp} + 每集 frames.json（跟随产物）
+  temp/ processed/ clips/       # 预留/中间目录
 src/time.ts    # 时间解析 [H:]MM:SS[.mmm] / 秒
-src/manifest.ts# manifest 形状校验（纯函数）
+src/manifest.ts# clip 清单形状校验（纯函数）
+src/framespec.ts# 截图规格形状校验 + 产物路径解析（纯函数）
+src/discovery.ts# 按集目录发现（clip/snap 共用）
 src/ffmpeg.ts  # ffmpeg 参数构造 + 执行（可 FFMPEG_BIN 覆盖）
-src/clip.ts    # CLI 入口（commander）
-manifest.json  # 剪辑清单（唯一输入）
-docs/adr/      # 决策档案（0001 编码策略、0002 TS7/oxlint）
+src/clip.ts    # 剪辑 CLI 入口（commander）
+src/snap.ts    # 截图 CLI 入口（commander）
+docs/adr/      # 决策档案（0001 编码策略、0002 TS7/oxlint、0003 每集清单、0004 截图）
 CONTEXT.md     # 领域术语与规则
 ```
 
 ## 完整工作流
 
 ### 0. 先读这四样东西
-- `CONTEXT.md`（术语/规则，尤其"路径全 ASCII"、"素材内容只读"）
-- `docs/adr/`（编码策略与工具链决策，改动前先对照）
-- `manifest.json`（当前要导出的内容）
+- `CONTEXT.md`（术语/规则，尤其"路径全 ASCII"、"素材内容只读"、"产物与规格同目录"）
+- `docs/adr/`（编码/工具链/结构决策，改动前先对照）
+- `media/exports/epN/manifest.json`（当前要导出的内容，每集一份）
 - `media/raw/videos/`（素材实况；**操作任何路径前先 `ls` 验证磁盘真实路径**，环境视图可能滞后/被重命名）
 
 ### 1. 素材规范化（一次性）
@@ -41,24 +44,26 @@ CONTEXT.md     # 领域术语与规则
 - 中文标题映射写进 `media/raw/videos/README.md`
 - 重命名用 Node 脚本（`fs.renameSync` + UTF-8 文件名映射表），**不要用 shell 通配符碰中文名**
 
-### 2. 编写 manifest.json
+### 2. 编写每集剪辑清单 media/exports/epN/manifest.json（ADR-0003：跟随产物目录）
 每一条 = 一个片段（一对一裁剪；多段拼接是后续迭代，语义不变）：
 ```json
 { "id": "ep01-c01", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep01.mp4", "in": "00:00:00", "out": "00:00:23" }
 ```
-- `id` 全局唯一，输出即 `media/exports/{id}.mp4`
+- `id` 在该集内唯一，输出即 `media/exports/epN/{id}.mp4`（产物目录 = 清单所在目录）
 - `in`/`out` 支持秒数（`30`）、`MM:SS`、`HH:MM:SS[.mmm]`
 - 约束：`in < out`，`out ≤ 源时长`；推荐先确认切点都在时长内
 
 ### 3. 校验 + 预览（不编码）
 ```bash
 pnpm clip run --dry-run
+pnpm clip list     # 列出已发现的每集清单
 ```
 打印每条：起点→终点、时长、输出路径、模式，并校验所有源存在、时长不越界。
 
 ### 4. 执行导出
 ```bash
-pnpm clip run                 # 默认精确模式（重编码）
+pnpm clip run                 # 默认精确模式：扫描全部每集清单（重编码）
+pnpm clip run --ep ep1        # 只跑某一集
 pnpm clip run --copy          # 草稿模式（流拷贝，误差 ±3.5~7s，见 ADR-0001）
 ```
 精确模式的 ffmpeg 语义（ADR-0001）：
@@ -69,23 +74,45 @@ pnpm clip run --copy          # 草稿模式（流拷贝，误差 ±3.5~7s，见
 
 ### 5. 核验产物（导出后必做）
 ```bash
-node .agents/skills/re1999-video-clipping/scripts/verify-exports.mjs [manifest.json] [media/exports]
+node .agents/skills/re1999-video-clipping/scripts/verify-exports.mjs   # 扫描全部每集清单，产物目录=清单所在目录
+node .agents/skills/re1999-video-clipping/scripts/verify-exports.mjs <manifest.json> [dir]  # 单文件模式
 ```
-按 manifest 逐条对账：时长误差 < 0.05s、h264 视频轨、faststart（moov 在文件头 128KB 内）。
+按清单逐条对账：时长误差 < 0.05s、h264 视频轨、faststart（moov 在文件头 128KB 内）。
 本项目 11 条实测全部 0.000s 误差。
+
+### 6. 截图帧导出（独立能力，ADR-0004）
+```bash
+# 每集截图规格 media/screenshots/epN/frames.json：
+#   { "id", "source", "at", "format": jpg|png|webp, "dir"? }
+#   at = 原始素材的绝对时间戳；dir 缺省 = 规格所在目录
+pnpm snap run --dry-run       # 校验 + 预览
+pnpm snap run                 # 提取全部每集截图
+pnpm snap run --ep ep1        # 只跑某一集
+pnpm snap list                # 列出已发现的截图规格
+```
+帧级精确语义（ADR-0004）：`-i` 在前、`-ss <at>` 在后（从关键帧精确解码到该帧），不做输入 seek；
+质量默认 png 无损 / jpg `-q:v 2` / webp `-quality 90`。
 
 ## 命令速查
 
 | 命令 | 作用 |
 |------|------|
-| `pnpm clip run [--dry-run] [--copy] [-m x.json] [--crf N] [--preset P]` | 批量导出 |
+| `pnpm clip run [--dry-run] [--copy] [--ep epN] [-m x.json] [--crf N] [--preset P] [-o dir]` | 批量导出（每集清单） |
+| `pnpm clip list` | 列出已发现的每集清单 |
+| `pnpm snap run [--dry-run] [--ep epN] [-m x.json]` | 批量截图（每集截图规格） |
+| `pnpm snap list` | 列出已发现的截图规格 |
 | `pnpm typecheck` / `pnpm lint` / `pnpm lint:fix` / `pnpm test` | TS7 / oxlint / vitest |
 | `FFMPEG_BIN=/path/ffmpeg pnpm clip run` | 指定 ffmpeg 二进制 |
 
 ## 关键决策档案
 - `../../../docs/adr/0001-重编码剪辑优先.md`：默认重编码、流拷贝仅草稿（关键帧 4~7s 实测驱动）
 - `../../../docs/adr/0002-ts7-oxlint.md`：保留 TS 7 原生编译器，lint 用 oxlint（typescript-eslint 未跟进）
-- `../../../CONTEXT.md`：片段/导出产物/manifest 术语，"素材内容只读 + 文件名可一次性 ASCII 规范化"规则
+- `../../../docs/adr/0003-每集清单跟随产物.md`：清单/规格按集拆分、跟随产物目录，CLI 按集扫描
+- `../../../docs/adr/0004-截图帧导出.md`：独立 snap 脚本、原始素材绝对时间戳、`-ss` 置后帧级精确
+- `../../../CONTEXT.md`：片段/截图/导出产物/manifest 术语，"素材内容只读 + 产物与规格同目录"规则
+
+## 易踩注释坑
+- 块注释里写 `media/exports/*/manifest.json` 会让 `*/` 提前闭合注释导致 oxlint 解析报错（`Expected , or )`）；写注释里的通配路径时改用 `epN` 占位（如 `media/exports/epN/manifest.json`）。
 
 ## 素材事实（实测）
 - 全部 7 集：1080p25 h264，每集约 6.5 分钟（ep07 仅 50s，片头曲）

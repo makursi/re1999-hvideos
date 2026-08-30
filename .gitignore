@@ -4,7 +4,16 @@ coverage/
 *.log
 
 # generated media (never commit large outputs)
-media/exports/
+# contents are ignored, but the per-episode dirs are re-included so
+# spec/recipe files (manifest.json / frames.json) stay versioned
+media/exports/*
+!media/exports/*/
+media/exports/*/*.mp4
+media/screenshots/*
+!media/screenshots/*/
+media/screenshots/*/*.jpg
+media/screenshots/*/*.png
+media/screenshots/*/*.webp
 media/temp/
 media/clips/
 media/processed/

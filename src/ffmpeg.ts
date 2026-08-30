@@ -1,8 +1,16 @@
 import { spawn } from 'node:child_process'
 import { execFileSync } from 'node:child_process'
+import type { FrameFormat } from './framespec.js'
 
 export const FFMPEG_BIN = process.env.FFMPEG_BIN ?? 'ffmpeg'
 export const FFPROBE_BIN = process.env.FFPROBE_BIN ?? 'ffprobe'
+
+/** Per-format quality defaults (jpg: mjpeg qscale 2 = highest, webp: lossy 90). */
+const FRAME_IMAGE_OPTS: Record<FrameFormat, string[]> = {
+  jpg: ['-q:v', '2'],
+  png: [],
+  webp: ['-quality', '90'],
+}
 
 export interface EncodeOptions {
   copy: boolean
@@ -42,6 +50,29 @@ export function buildFfmpegArgs(
     '-c:a', 'aac',
     '-b:a', '192k',
     '-movflags', '+faststart',
+    output,
+  ]
+}
+
+/**
+ * Extract one frame at an exact timestamp.
+ * `-ss` is placed AFTER `-i` (output seek): decode from the previous keyframe to
+ * the exact frame. Input seek (-ss before -i) would snap to a keyframe up to
+ * ~7s away (ADR-0001 fact: GOP 4-7s) — unacceptable for screenshots.
+ */
+export function buildFrameArgs(
+  source: string,
+  at: number,
+  output: string,
+  format: FrameFormat,
+): string[] {
+  return [
+    '-y',
+    '-loglevel', 'error',
+    '-i', source,
+    '-ss', String(at),
+    '-frames:v', '1',
+    ...FRAME_IMAGE_OPTS[format],
     output,
   ]
 }

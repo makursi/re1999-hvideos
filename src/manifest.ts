@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { parseTimeToSeconds, type TimeInput } from './time.js'
 
+const ASCII_RE = /^[A-Za-z0-9._-]+$/
+
 export interface ClipSpec {
   id: string
   source: string
@@ -28,6 +30,8 @@ export function parseManifest(raw: unknown): Manifest {
     const { id, source, in: input, out: output } = entry as Record<string, unknown>
     if (typeof id !== 'string' || id.trim() === '')
       throw new Error(`clip[${i}]: "id" must be a non-empty string`)
+    if (!ASCII_RE.test(id))
+      throw new Error(`clip[${i}]: "id" must be ASCII [A-Za-z0-9._-] (got "${id}")`)
     if (seen.has(id))
       throw new Error(`clip[${i}]: duplicate clip id "${id}"`)
     seen.add(id)
@@ -58,5 +62,10 @@ export function loadManifest(path: string): Manifest {
   catch {
     throw new Error(`cannot read manifest: ${path}`)
   }
-  return parseManifest(JSON.parse(text) as unknown)
+  try {
+    return parseManifest(JSON.parse(text) as unknown)
+  }
+  catch (error) {
+    throw new Error(`cannot parse manifest ${path}: ${(error as Error).message}`)
+  }
 }

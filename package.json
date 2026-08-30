@@ -1,11 +1,12 @@
 {
   "name": "re1999-hvideos",
   "version": "0.1.0",
-  "description": "Clip 1999 Arcane Incident Department raw videos into segments per manifest.json",
+  "description": "Clip 1999 Arcane Incident Department raw videos into segments per per-episode manifests; extract frame screenshots per frames specs",
   "private": true,
   "type": "module",
   "scripts": {
     "clip": "tsx src/clip.ts",
+    "snap": "tsx src/snap.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
