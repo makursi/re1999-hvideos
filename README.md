@@ -24,6 +24,7 @@ pnpm lint / typecheck
 | `media/processed/` `clips/` `temp/` | Normalized / intermediate / scratch files |
 | `media/exports/epN/` | Exported clips (episode dirs) + this episode's `manifest.json` |
 | `media/screenshots/epN/` | Screenshot images (episode dirs) + this episode's `frames.json` |
+| `CHANGELOG.md` | Change log (Keep a Changelog style) |
 | `docs/` | Docs & ADRs (re-encode-first clipping, per-episode manifests, frame screenshots) |
 | `.agents/skills/re1999-video-clipping/` | Project skill + `verify-exports.mjs` |
 
