@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# generated media (never commit large outputs)
+media/exports/
+media/temp/
+media/clips/
+media/processed/
+
+# source videos stay local (650MB+ binaries never enter git history)
+media/raw/**/*.mp4
+media/raw/audios/*
