@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import { execFileSync } from 'node:child_process'
 import type { FrameFormat } from './framespec.js'
+import type { FrameStats } from './solid.js'
 
 export const FFMPEG_BIN = process.env.FFMPEG_BIN ?? 'ffmpeg'
 export const FFPROBE_BIN = process.env.FFPROBE_BIN ?? 'ffprobe'
@@ -54,29 +55,6 @@ export function buildFfmpegArgs(
   ]
 }
 
-/**
- * Extract one frame at an exact timestamp.
- * `-ss` is placed AFTER `-i` (output seek): decode from the previous keyframe to
- * the exact frame. Input seek (-ss before -i) would snap to a keyframe up to
- * ~7s away (ADR-0001 fact: GOP 4-7s) — unacceptable for screenshots.
- */
-export function buildFrameArgs(
-  source: string,
-  at: number,
-  output: string,
-  format: FrameFormat,
-): string[] {
-  return [
-    '-y',
-    '-loglevel', 'error',
-    '-i', source,
-    '-ss', String(at),
-    '-frames:v', '1',
-    ...FRAME_IMAGE_OPTS[format],
-    output,
-  ]
-}
-
 export function runFfmpeg(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(FFMPEG_BIN, args, { stdio: ['ignore', 'inherit', 'inherit'] })
@@ -88,4 +66,80 @@ export function runFfmpeg(args: string[]): Promise<void> {
         reject(new Error(`ffmpeg exited with code ${code}`))
     })
   })
+}
+
+const STATS_RE = /signalstats\.(YAVG|YMIN|YMAX)=([0-9.]+)/g
+
+/**
+ * Parse `signalstats,metadata=print` output (stderr or file) into the
+ * luminance signals isSolidFrame judges on. Last occurrence wins — a single
+ * probed image can emit its metadata twice.
+ */
+export function parseSignalStats(probeText: string): FrameStats {
+  const stats: Partial<FrameStats> = {}
+  for (const m of probeText.matchAll(STATS_RE)) {
+    const key = m[1] as 'YAVG' | 'YMIN' | 'YMAX'
+    const value = Number(m[2])
+    if (key === 'YAVG')
+      stats.yavg = value
+    else if (key === 'YMIN')
+      stats.ymin = value
+    else
+      stats.ymax = value
+  }
+  if (stats.yavg === undefined || stats.ymin === undefined || stats.ymax === undefined)
+    throw new Error('ffmpeg signalstats produced no YAVG/YMIN/YMAX')
+  return { yavg: stats.yavg, ymin: stats.ymin, ymax: stats.ymax }
+}
+
+/** Probe one image file for luminance stats via a single signalstats pass. */
+export async function probeImageStats(imagePath: string): Promise<FrameStats> {
+  const args = [
+    '-y',
+    '-loglevel', 'info',
+    '-i', imagePath,
+    '-vf', 'signalstats,metadata=print',
+    '-f', 'null',
+    '-',
+  ]
+  const stderr = await new Promise<string>((resolve, reject) => {
+    const child = spawn(FFMPEG_BIN, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    let out = ''
+    child.stderr.on('data', (chunk: Buffer) => { out += chunk.toString() })
+    child.on('error', reject)
+    child.on('close', (code) => {
+      if (code === 0)
+        resolve(out)
+      else
+        reject(new Error(`ffmpeg probe exited with code ${code} for ${imagePath}`))
+    })
+  })
+  return parseSignalStats(stderr)
+}
+
+/**
+ * Extract `count` consecutive frame-exact frames starting at `at` in ONE decode
+ * pass (`count=1` reproduces the ADR-0004 single-frame extraction). `-ss` stays after `-i` (output seek, ADR-0004) and there is NO filter
+ * graph: on this ffmpeg build (n9.0.1) combining the output seek with a
+ * filter (`even metadata=print`) makes ffmpeg decode from the stream start and
+ * emit wrong frames (measured 4127+ frames / 17-37s). The plain extract stays
+ * frame-exact and image2 numbers outputs sequentially (pattern %02d):
+ * f-01 = the frame at `at`, f-(k+1) = the k-th frame after `at`.
+ */
+export function buildSequenceArgs(
+  source: string,
+  at: number,
+  count: number,
+  format: FrameFormat,
+  pattern: string,
+): string[] {
+  return [
+    '-y',
+    '-loglevel', 'error',
+    '-i', source,
+    '-ss', String(at),
+    '-frames:v', String(count),
+    ...FRAME_IMAGE_OPTS[format],
+    pattern,
+  ]
 }

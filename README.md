@@ -9,7 +9,8 @@ pnpm clip run --dry-run  # validate + print plan, no encoding
 pnpm clip list           # list discovered per-episode manifests
 pnpm snap run            # extract screenshots (media/screenshots/epN/frames.json)
 pnpm snap run --ep ep1   # one episode
-pnpm snap run --dry-run  # validate + print plan
+pnpm snap run --strict   # error on solid frames instead of auto-shifting
+pnpm snap run --dry-run  # validate + print plan (warns about auto-shifts)
 pnpm snap list           # list discovered frames specs
 pnpm test                # unit tests
 pnpm lint / typecheck
@@ -41,3 +42,4 @@ pnpm lint / typecheck
 - Output: `media/screenshots/epN/{id}.{format}`
 - Extracts from **raw sources at absolute timestamps** with frame-exact `-ss`-after-`-i` decoding (ADR-0004)
 - Quality defaults: png lossless, jpg `-q:v 2`, webp `-quality 90`
+- **Auto-shift（ADR-0005）**：若 `at` 恰好落在纯色帧（黑场 / 频闪白帧），自动向后逐帧搜索 64 帧窗口内最近有效帧并输出（默认开启）；`--strict` 关闭并改为单条报错。实际取帧时刻与偏移量记录在日志，规格 `at` 不回写；`--dry-run` 逐条预警 `将自动纠偏至 ~…`
