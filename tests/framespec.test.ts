@@ -70,6 +70,7 @@ describe('parseFrameSpec', () => {
   })
 })
 
+
 describe('resolveFrameEntry', () => {
   it('defaults the output dir to the spec directory', () => {
     const entry = parseFrameSpec({

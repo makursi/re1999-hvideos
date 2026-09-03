@@ -25,7 +25,9 @@ src/discovery.ts# 按集目录发现（clip/snap 共用）
 src/ffmpeg.ts  # ffmpeg 参数构造 + 执行（可 FFMPEG_BIN 覆盖）
 src/clip.ts    # 剪辑 CLI 入口（commander）
 src/snap.ts    # 截图 CLI 入口（commander）
-docs/adr/      # 决策档案（0001 编码策略、0002 TS7/oxlint、0003 每集清单、0004 截图）
+src/solid.ts   # 纯色帧判定（ADR-0005，YAVG + YMAX-YMIN 均匀性）
+src/shift.ts   # 纠偏规划纯函数（firstValidFrame + planExtraction）
+docs/adr/      # 决策档案（0001 编码策略、0002 TS7/oxlint、0003 每集清单、0004 截图、0005 防纯色帧自动纠偏）
 CONTEXT.md     # 领域术语与规则
 ```
 
@@ -80,18 +82,20 @@ node .agents/skills/re1999-video-clipping/scripts/verify-exports.mjs <manifest.j
 按清单逐条对账：时长误差 < 0.05s、h264 视频轨、faststart（moov 在文件头 128KB 内）。
 本项目 11 条实测全部 0.000s 误差。
 
-### 6. 截图帧导出（独立能力，ADR-0004）
+### 6. 截图帧导出（独立能力，ADR-0004 / 0005）
 ```bash
 # 每集截图规格 media/screenshots/epN/frames.json：
 #   { "id", "source", "at", "format": jpg|png|webp, "dir"? }
 #   at = 原始素材的绝对时间戳；dir 缺省 = 规格所在目录
-pnpm snap run --dry-run       # 校验 + 预览
+pnpm snap run --dry-run       # 校验 + 预览（含纯色帧纠偏预警）
 pnpm snap run                 # 提取全部每集截图
 pnpm snap run --ep ep1        # 只跑某一集
+pnpm snap run --strict        # 关闭自动纠偏：判坏即单条报错、跳过、退出码非零
 pnpm snap list                # 列出已发现的截图规格
 ```
 帧级精确语义（ADR-0004）：`-i` 在前、`-ss <at>` 在后（从关键帧精确解码到该帧），不做输入 seek；
 质量默认 png 无损 / jpg `-q:v 2` / webp `-quality 90`。
+**防纯色帧自动纠偏（ADR-0005）**：`at` 是意图时刻；执行时若该帧被判为纯色帧（黑场/频闪白，YAVG 极端 + 全帧均匀），自动向后逐帧找窗口（64 帧 ≈ 2.56s）内最近有效帧输出；出窗无有效帧 → 单条报错。产物文件名不变、规格 `at` 不回写，实际取帧时刻与偏移量记在日志；`--dry-run` 逐条打印 `将自动纠偏至 ~HH:MM:SS.mmm`。
 
 ## 命令速查
 
@@ -99,7 +103,7 @@ pnpm snap list                # 列出已发现的截图规格
 |------|------|
 | `pnpm clip run [--dry-run] [--copy] [--ep epN] [-m x.json] [--crf N] [--preset P] [-o dir]` | 批量导出（每集清单） |
 | `pnpm clip list` | 列出已发现的每集清单 |
-| `pnpm snap run [--dry-run] [--ep epN] [-m x.json]` | 批量截图（每集截图规格） |
+| `pnpm snap run [--dry-run] [--strict] [--ep epN] [-m x.json]` | 批量截图（每集截图规格，自动纠偏） |
 | `pnpm snap list` | 列出已发现的截图规格 |
 | `pnpm typecheck` / `pnpm lint` / `pnpm lint:fix` / `pnpm test` | TS7 / oxlint / vitest |
 | `FFMPEG_BIN=/path/ffmpeg pnpm clip run` | 指定 ffmpeg 二进制 |
@@ -109,6 +113,7 @@ pnpm snap list                # 列出已发现的截图规格
 - `../../../docs/adr/0002-ts7-oxlint.md`：保留 TS 7 原生编译器，lint 用 oxlint（typescript-eslint 未跟进）
 - `../../../docs/adr/0003-每集清单跟随产物.md`：清单/规格按集拆分、跟随产物目录，CLI 按集扫描
 - `../../../docs/adr/0004-截图帧导出.md`：独立 snap 脚本、原始素材绝对时间戳、`-ss` 置后帧级精确
+- `../../../docs/adr/0005-防纯色帧自动纠偏.md`：YAVG+YSTD 双信号判定、向后 64 帧窗口纠偏、`--strict`、dry-run 预警
 - `../../../CONTEXT.md`：片段/截图/导出产物/manifest 术语，"素材内容只读 + 产物与规格同目录"规则
 
 ## 易踩注释坑
@@ -160,6 +165,12 @@ pnpm snap list                # 列出已发现的截图规格
 9. **素材无音轨 → 输出静音**
    - 现象：11 条产物 `h264/-`（无音频流），一度怀疑参数错误；实测所有源 `-select_streams a` 为空。
    - 结论：素材本身无声，属正常；已写入 `media/raw/videos/README.md`。
+
+10. **ffmpeg n9.0.1：`-ss` 输出 seek × filtergraph = 从片头解码并出错误帧**
+   - 现象：`-i V -ss 165 -frames:v 1 -vf signalstats,metadata=print -f null -` 本应探一帧，实测解码 4127+ 帧（17~37s）、元数据从视频开头印起、输出帧错位；同参数去掉 filter 抽 jpg 则帧级精确（黑场 165.00 YAVG=0、165.04 YAVG=146.39）。`-f null` / `-vf`（哪怕只是 metadata=print）与 `-ss` 置后组合在 n9.0.1 均失效。
+   - 另外 `signalstats` 根本不输出 YSTD（ADR-0005 的"标准差"以 `YMAX-YMIN ≤ 16` 实现）。
+   - 解决：探测一律"先无 filter 抽帧成图 → 再单图 signalstats"（单张 ~0.08s）；纠偏窗口用 `-ss at -frames:v 65` 一次解码连续 65 帧，文件序号即相对 `at` 的帧号。
+   - 教训：ffmpeg 行为必须对当前二进制实测，别信版本——前一个会话留下的 select 网格方案从未对真实视频验证，本次直接重构掉了。
 
 ## 验证脚本
 

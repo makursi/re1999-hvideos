@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+### 新增（Added）
+
+- **防纯色帧自动纠偏（ADR-0005）**：截图执行时若 `at` 落在纯色帧（整帧同亮度：黑场 / 频闪白帧），自动向后逐帧搜索窗口内最近有效帧并输出：
+  - 判定双信号：YAVG 处于极端区间（黑 ≈0、白 ≈255）**且**全帧亮度均匀——本机 ffmpeg（n9.0.1）signalstats 不输出 YSTD，均匀性以 `YMAX-YMIN ≤ 16` 实现；
+  - 窗口上限 64 帧（≈2.56s），纠偏窗口一次解码抽取 65 帧逐张探测，首个有效帧即产物；出窗无有效帧 → 单条报错、跳过其余继续、汇总非零退出码，绝不悄悄输出远处帧；
+  - `--strict` 关闭自动纠偏（判坏即单条报错不产出）；`--dry-run` 逐条预警 `将自动纠偏至 ~HH:MM:SS.mmm`；
+  - 规格 `at` 保持意图时刻不回写，产物文件名不变，实际取帧时刻与偏移量记录在日志；复现由确定性算法保证（相同 `at` + 相同判定 → 相同产物）。
+- 新纯函数模块 `src/shift.ts`（`firstValidFrame` + `planExtraction`）与 `tests/shift.test.ts`：黑/白判定、暗场景不误杀、纠偏命中、出窗报错、`--strict` 行为全覆盖。
+
+### 变更（Changed）
+
+- `media/screenshots/ep1/frames.json` 的 f12/f25 恢复意图时刻（00:02:45 / 00:05:31）——此前被手工 +1s 规避纯色帧，现交由自动纠偏处理。
+- `src/ffmpeg.ts`：以 `buildSequenceArgs`（无 filter 的帧序列抽取，`count=1` 即单帧抽取）取代此前未经验证的 select 网格方案，取消 `buildBurstArgs` + `burst` schema 扩展（维持 "frames.json schema 不变"），并废弃不再生产引用的 `buildFrameArgs`。
+- `src/snap.ts`：纠偏搜索与 `src/shift.ts` 的 `firstValidFrame` 合并为同一实现（探测谓词注入，纯函数即执行算法）；`--strict --dry-run` 预测到失败时同样置非零退出码，与严格模式"退出码非零汇总"一致；源结束导致的窗口截断以 `WindowEndError` 给出精确报错信息。
+
+### 文档（Docs）
+
+- ADR-0005 补充"实现注记"：YSTD 近似、filtergraph × 输出 seek 在本构建失效的事实、窗口单次抽取、ep01 实测结果。
+- `README.md` 与项目技能 `SKILL.md` 补充 snap 自动纠偏与 `--strict` 用法。
+
 ## 0.2.0 - 2026-08-30
 
 ### 新增（Added）
