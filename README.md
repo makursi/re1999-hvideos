@@ -27,7 +27,7 @@ pnpm lint / typecheck
 | `media/screenshots/epN/` | Screenshot images (episode dirs) + this episode's `frames.json` |
 | `CHANGELOG.md` | Change log (Keep a Changelog style) |
 | `docs/` | Docs & ADRs (re-encode-first clipping, per-episode manifests, frame screenshots) |
-| `.agents/skills/re1999-video-clipping/` | Project skill + `verify-exports.mjs` |
+| `.agents/skills/` | Project skills: `re1999-video-clipping/` (clip pipeline + `scripts/verify-exports.mjs`), `re1999-snap/` (screenshot pipeline), `re1999-common/PROJECT.md` (shared project reference) |
 
 ## Clips (pnpm clip)
 
