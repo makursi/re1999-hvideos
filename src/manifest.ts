@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
 import { parseTimeToSeconds, type TimeInput } from './time.js'
+import { loadSpec } from './run-common.js'
 
 const ASCII_RE = /^[A-Za-z0-9._-]+$/
 
@@ -55,17 +55,5 @@ export function resolveClipTimes(clip: ClipSpec): { start: number, end: number }
 }
 
 export function loadManifest(path: string): Manifest {
-  let text: string
-  try {
-    text = readFileSync(path, 'utf8')
-  }
-  catch {
-    throw new Error(`cannot read manifest: ${path}`)
-  }
-  try {
-    return parseManifest(JSON.parse(text) as unknown)
-  }
-  catch (error) {
-    throw new Error(`cannot parse manifest ${path}: ${(error as Error).message}`)
-  }
+  return loadSpec(path, 'manifest', parseManifest)
 }

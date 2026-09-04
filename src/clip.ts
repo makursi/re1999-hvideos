@@ -1,8 +1,8 @@
 import { Command } from 'commander'
-import { mkdirSync, existsSync, statSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
-import { discoverEpisodeDirs } from './discovery.js'
-import { loadManifest, resolveClipTimes, type ClipSpec } from './manifest.js'
+import { mkdirSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { collectEpisodes, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Episode } from './run-common.js'
+import { loadManifest, resolveClipTimes, type ClipSpec, type Manifest } from './manifest.js'
 import { buildFfmpegArgs, probeDuration, runFfmpeg } from './ffmpeg.js'
 import { formatSeconds } from './time.js'
 
@@ -23,12 +23,6 @@ interface RunOptions {
   outDir?: string
 }
 
-interface EpisodeClips {
-  name: string
-  manifestPath: string
-  clips: ClipSpec[]
-}
-
 program
   .command('run')
   .description('Run all clips in the per-episode manifests')
@@ -39,79 +33,37 @@ program
   .option('--crf <n>', 'libx264 CRF for accurate mode', '20')
   .option('--preset <p>', 'x264 preset for accurate mode', 'fast')
   .option('-o, --out-dir <path>', 'output directory override (default: each manifest dir)')
-  .action(async (options: RunOptions) => {
-    try {
-      await runAllEpisodes(collectEpisodes(options), options)
-    }
-    catch (error) {
-      console.error(`[clip] error: ${(error as Error).message}`)
-      process.exitCode = 1
-    }
-  })
+  .action((options: RunOptions) => wrapAction('clip', () => runAllEpisodes(collectManifests(options), options)))
 
 program
   .command('list')
   .description('List discovered per-episode manifests')
-  .action(() => {
-    const names = discoverEpisodeDirs(EXPORTS_DIR, 'manifest.json')
-    if (names.length === 0) {
-      console.log(`[clip] no manifests found under ${EXPORTS_DIR}`)
-      return
-    }
-    for (const name of names) {
-      try {
-        const clips = loadManifest(join(EXPORTS_DIR, name, 'manifest.json')).clips
-        console.log(`  ${name}: ${clips.length} clip(s)`)
-      }
-      catch (error) {
-        console.log(`  ${name}: ERROR (${(error as Error).message})`)
-      }
-    }
-  })
+  .action(makeListAction('clip', EXPORTS_DIR, 'manifest.json', `no manifests found under ${EXPORTS_DIR}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
 
 program.parse()
 
-function collectEpisodes(options: RunOptions): EpisodeClips[] {
-  if (options.manifest) {
-    const clips = loadManifest(options.manifest).clips
-    return [{ name: options.ep ?? dirname(options.manifest), manifestPath: options.manifest, clips }]
-  }
-
-  const names = discoverEpisodeDirs(EXPORTS_DIR, 'manifest.json')
-  const selected = options.ep ? names.filter(n => n === options.ep) : names
-  if (options.ep && selected.length === 0)
-    throw new Error(`episode not found: ${options.ep} (scanned ${EXPORTS_DIR})`)
-  if (selected.length === 0)
-    throw new Error(`no manifests found under ${EXPORTS_DIR}/<ep>/manifest.json`)
-
-  return selected.map((name) => {
-    const manifestPath = join(EXPORTS_DIR, name, 'manifest.json')
-    return { name, manifestPath, clips: loadManifest(manifestPath).clips }
+function collectManifests(options: RunOptions): Episode<Manifest>[] {
+  return collectEpisodes(EXPORTS_DIR, 'manifest.json', loadManifest, {
+    explicitPath: options.manifest,
+    ep: options.ep,
+    kind: 'manifests',
+    singleName: options.manifest ? dirname(options.manifest) : undefined,
   })
 }
 
-async function runAllEpisodes(episodes: EpisodeClips[], options: RunOptions): Promise<void> {
+async function runAllEpisodes(episodes: Episode<Manifest>[], options: RunOptions): Promise<void> {
   // Probe every distinct source once; validate ranges against real duration.
-  const durations = new Map<string, number>()
-  for (const ep of episodes) {
-    for (const clip of ep.clips) {
-      if (!durations.has(clip.source)) {
-        if (!existsSync(clip.source) || !statSync(clip.source).isFile())
-          throw new Error(`source not found: ${clip.source}`)
-        durations.set(clip.source, probeDuration(clip.source))
-      }
-    }
-  }
+  const durations = probeSourceDurations(episodes.flatMap(ep => ep.loaded.clips), probeDuration, 'source')
 
   interface PlanEntry { clip: ClipSpec, start: number, duration: number, output: string }
   const plan = episodes.map(ep => ({
     name: ep.name,
-    entries: ep.clips.map((clip) => {
+    entries: ep.loaded.clips.map((clip) => {
       const { start, end } = resolveClipTimes(clip)
       const sourceDuration = durations.get(clip.source)!
       if (end > sourceDuration)
         throw new Error(`clip "${clip.id}": out (${formatSeconds(end)}) exceeds source duration (${formatSeconds(sourceDuration)})`)
-      const outDir = options.outDir ?? dirname(ep.manifestPath)
+      const outDir = options.outDir ?? dirname(ep.specPath)
       const output = resolve(outDir, `${clip.id}.mp4`)
       return { clip, start, duration: end - start, output } satisfies PlanEntry
     }),
@@ -144,6 +96,6 @@ async function runAllEpisodes(episodes: EpisodeClips[], options: RunOptions): Pr
       console.log(`  done -> ${e.output}`)
     }
   }
-  const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1)
+  const elapsed = elapsedSeconds(startedAt)
   console.log(`[clip] finished ${plan.reduce((s, p) => s + p.entries.length, 0)} clips in ${elapsed}s`)
 }

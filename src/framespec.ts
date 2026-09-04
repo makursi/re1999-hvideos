@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
 import { parseTimeToSeconds, type TimeInput } from './time.js'
+import { loadSpec } from './run-common.js'
 
 export const FRAME_FORMATS = ['jpg', 'png', 'webp'] as const
 export type FrameFormat = typeof FRAME_FORMATS[number]
@@ -83,17 +83,5 @@ export function resolveFrameEntry(
 }
 
 export function loadFrameSpec(path: string): FramesSpec {
-  let text: string
-  try {
-    text = readFileSync(path, 'utf8')
-  }
-  catch {
-    throw new Error(`cannot read frames spec: ${path}`)
-  }
-  try {
-    return parseFrameSpec(JSON.parse(text) as unknown)
-  }
-  catch (error) {
-    throw new Error(`cannot parse frames spec ${path}: ${(error as Error).message}`)
-  }
+  return loadSpec(path, 'frames spec', parseFrameSpec)
 }
