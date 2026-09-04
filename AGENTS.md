@@ -19,7 +19,8 @@
 
 ## Source map
 
-- `src/clip.ts` / `src/snap.ts` — CLI entrypoints (commander; run/list, `--dry-run`, `--ep`, `--strict`, `--copy`)
+- `src/clip.ts` / `src/snap.ts` — CLI entrypoints (commander; run/list, `--dry-run`, `--ep`, `--strict`, `--copy`; both route through the shared glue below)
+- `src/run-common.ts` — shared spec-runner glue (`collectEpisodes`, `probeSourceDurations`, `makeListAction`, `wrapAction`, `loadSpec`, `elapsedSeconds`): episode discovery + `--ep` selection, source duration probing, `list` action, top-level error handling, spec file loading. Mechanics only — domain models stay per-CLI (ADR-0004).
 - `src/manifest.ts` / `src/framespec.ts` — spec parsers & validators (ASCII-id rule, time resolution)
 - `src/ffmpeg.ts` — ffmpeg arg builders, duration probing, signalstats parsing
 - `src/solid.ts` / `src/shift.ts` — solid-frame detection (YAVG ± YMAX−YMIN) and auto-shift window policy (64 frames @ 25fps)
