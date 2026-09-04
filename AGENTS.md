@@ -26,14 +26,17 @@
 - `src/time.ts` / `src/discovery.ts` — time parse/format, per-episode dir scanning
 - `tests/` — vitest, one test file per module; run `pnpm test`, `pnpm lint`, `pnpm typecheck` before pushing
 
-## Git conventions (every iteration)
+## Git conventions
 
-All work lands on `main` only through a merged PR. Every iteration ships via
-this exact flow, in order:
-
-1. `git checkout -b <type>/<short-slug>` — type: `feat` / `fix` / `refactor` / `docs` / `chore`
-2. Commit in English, conventional style (never Chinese in commit messages)
-3. `git push -u origin <branch>`
-4. `gh pr create --base main` (title = commit subject), then after review:
-   `gh pr merge --squash --delete-branch`
-5. `git checkout main && git pull`
+- **Routine operational work commits straight to `main`** — per-episode
+  specs (`frames.json` / `manifest.json`), product exports, screenshots,
+  and other one-off data work. Commit in English, conventional style
+  (never Chinese in commit messages).
+- **Project iterations go through the PR flow** — pipeline/tooling changes
+  (`src/`, `tests/`, CLI behavior, docs, ADRs, skills):
+  1. `git checkout -b <type>/<short-slug>` — type: `feat` / `fix` / `refactor` / `docs` / `chore`
+  2. Commit in English, conventional style (never Chinese in commit messages)
+  3. `git push -u origin <branch>`
+  4. `gh pr create --base main` (title = commit subject), then after review:
+     `gh pr merge --squash --delete-branch`
+  5. `git checkout main && git pull`

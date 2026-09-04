@@ -38,7 +38,7 @@ CHANGELOG.md / README.md  # 变更记录 / 使用说明
 ## git 约定
 
 - commit message 用英文、Conventional Commits（如 `feat: ...` / `docs: ...`），**不用中文**
-- 功能/文档开发走分支 → push → PR → merge → `git checkout main && git pull`（本仓库工作流）
+- **例行操作（写 spec、导出、截图）直接提交 main**；仅**项目迭代**（`src/`、`tests/`、CLI 行为、文档、ADR、skill 改动）走分支 → push → PR → merge → `git checkout main && git pull`
 - `media` 媒体产物永不提交；`manifest.json` / `frames.json` 是输入，进版本库
 
 ## 项目级踩坑（工具链/仓库通用，与具体管线无关）
