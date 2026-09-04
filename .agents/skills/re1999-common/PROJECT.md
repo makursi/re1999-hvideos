@@ -9,7 +9,7 @@
 ## 目录布局
 
 ```
-src/ + tests/             # CLIs (clip, snap) + 纯函数模块 + vitest 用例（25 条全绿）
+src/ + tests/             # CLIs (clip, snap) + run-common 共享编排（发现/探测/list/错误处理/loadSpec，仅机制不涉领域模型，ADR-0004）+ 纯函数模块 + vitest 用例（61 条全绿）
 media/raw/                # 源素材（只读，永不变更、永不提交 git）；audios/ 预留混音
 media/exports/epN/        # 剪辑产物 {id}.mp4 + 该集 manifest.json（跟随产物）
 media/screenshots/epN/    # 截图产物 {id}.{format} + 该集 frames.json（跟随产物）
