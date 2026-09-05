@@ -1,0 +1,17 @@
+{
+  "screenshots": [
+    { "id": "ep03-f01", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:00:17", "format": "jpg" },
+    { "id": "ep03-f02", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:00:34", "format": "jpg" },
+    { "id": "ep03-f03", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:01:48", "format": "jpg" },
+    { "id": "ep03-f04", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:02:05", "format": "jpg" },
+    { "id": "ep03-f05", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:02:36", "format": "jpg" },
+    { "id": "ep03-f06", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:02:48", "format": "jpg" },
+    { "id": "ep03-f07", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:03:00", "format": "jpg" },
+    { "id": "ep03-f08", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:05:32", "format": "jpg" },
+    { "id": "ep03-f09", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:05:47", "format": "jpg" },
+    { "id": "ep03-f10", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:05:48", "format": "jpg" },
+    { "id": "ep03-f11", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:05:50", "format": "jpg" },
+    { "id": "ep03-f12", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:05:54", "format": "jpg" },
+    { "id": "ep03-f13", "source": "media/raw/videos/1999-Arcane-Incident-Department-Animation/ep03.mp4", "at": "00:05:55", "format": "jpg" }
+  ]
+}

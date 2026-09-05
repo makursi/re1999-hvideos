@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSequenceArgs, parseSignalStats } from '../src/ffmpeg.js'
+import { buildSequenceArgs, parseSignalStats } from '../../src/common/ffmpeg.js'
 
 describe('parseSignalStats', () => {
   it('parses YAVG/YMIN/YMAX from a real probe emission', () => {

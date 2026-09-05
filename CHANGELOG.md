@@ -15,6 +15,7 @@
 
 ### 变更（Changed）
 
+- **src 目录按流水线重组 + 单一入口（ADR-0006）**：源码由平铺 10 文件改为 `src/clip/`、`src/snap/`、`src/common/` 三目录；新增单一入口 `src/main.ts`（程序名 `re1999`，`clip`/`snap` 为子命令，`pnpm clip`/`pnpm snap` 保留为转发别名）；原 `clip.ts`/`snap.ts` 的命令构建与编排逻辑迁入 `src/clip/run.ts`/`src/snap/run.ts`（`buildClipCommand`/`buildSnapCommand`）。纯组织重构，CLI 语义与导出行为不变；测试镜像为 `tests/clip|snap|common/`。
 - `media/screenshots/ep1/frames.json` 的 f12/f25 恢复意图时刻（00:02:45 / 00:05:31）——此前被手工 +1s 规避纯色帧，现交由自动纠偏处理。
 - `src/ffmpeg.ts`：以 `buildSequenceArgs`（无 filter 的帧序列抽取，`count=1` 即单帧抽取）取代此前未经验证的 select 网格方案，取消 `buildBurstArgs` + `burst` schema 扩展（维持 "frames.json schema 不变"），并废弃不再生产引用的 `buildFrameArgs`。
 - `src/snap.ts`：纠偏搜索与 `src/shift.ts` 的 `firstValidFrame` 合并为同一实现（探测谓词注入，纯函数即执行算法）；`--strict --dry-run` 预测到失败时同样置非零退出码，与严格模式"退出码非零汇总"一致；源结束导致的窗口截断以 `WindowEndError` 给出精确报错信息。

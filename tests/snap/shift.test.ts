@@ -6,7 +6,7 @@ import {
   SHIFT_MAX_FRAMES,
   WindowEndError,
   type ShiftResult,
-} from '../src/shift.js'
+} from '../../src/snap/shift.js'
 
 const noneSolid = () => false
 

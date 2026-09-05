@@ -1,5 +1,5 @@
-import { parseTimeToSeconds, type TimeInput } from './time.js'
-import { loadSpec } from './run-common.js'
+import { parseTimeToSeconds, type TimeInput } from '../common/time.js'
+import { loadSpec } from '../common/run-common.js'
 
 const ASCII_RE = /^[A-Za-z0-9._-]+$/
 

@@ -10,7 +10,7 @@ description: re1999-hvideos 帧截图管线：按每集 frames.json 从原始素
 ## 领域模型
 
 - **截图（screenshot）** = 源视频**单个时间点** `at` 的一帧，产物是图片（与"片段"的时间范围是不同概念）。
-- **纯色帧（solid frame）** = 整帧几乎同一亮度的无内容帧（黑场 / 频闪白帧）。判据（`src/solid.ts`）：YAVG ≤ 20 或 ≥ 235，**且**全帧亮度范围 `YMAX-YMIN ≤ 16`（本机 ffmpeg 的 signalstats 不输出 YSTD，用范围近似）。
+- **纯色帧（solid frame）** = 整帧几乎同一亮度的无内容帧（黑场 / 频闪白帧）。判据（`src/snap/solid.ts`）：YAVG ≤ 20 或 ≥ 235，**且**全帧亮度范围 `YMAX-YMIN ≤ 16`（本机 ffmpeg 的 signalstats 不输出 YSTD，用范围近似）。
 - **有效帧** = 非纯色帧（静态但有内容的帧也算有效）。
 - **纠偏（auto-shift）** = `at` 落在纯色帧时，自动**向后**逐帧找窗口内最近有效帧输出。
 - 完整术语见 `../../../CONTEXT.md`。

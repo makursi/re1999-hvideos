@@ -5,8 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "clip": "tsx src/clip.ts",
-    "snap": "tsx src/snap.ts",
+    "re1999": "tsx src/main.ts",
+    "clip": "tsx src/main.ts clip",
+    "snap": "tsx src/main.ts snap",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",

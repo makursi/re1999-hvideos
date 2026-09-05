@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { execFileSync } from 'node:child_process'
-import type { FrameFormat } from './framespec.js'
-import type { FrameStats } from './solid.js'
+import type { FrameFormat } from '../snap/framespec.js'
+import type { FrameStats } from '../snap/solid.js'
 
 export const FFMPEG_BIN = process.env.FFMPEG_BIN ?? 'ffmpeg'
 export const FFPROBE_BIN = process.env.FFPROBE_BIN ?? 'ffprobe'

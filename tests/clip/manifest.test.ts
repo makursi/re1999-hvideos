@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseManifest, resolveClipTimes } from '../src/manifest.js'
+import { parseManifest, resolveClipTimes } from '../../src/clip/manifest.js'
 
 describe('parseManifest', () => {
   it('rejects non-ASCII ids (path rule)', () => {

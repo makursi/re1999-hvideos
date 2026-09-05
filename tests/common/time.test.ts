@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatSeconds, parseTimeToSeconds } from '../src/time.js'
+import { formatSeconds, parseTimeToSeconds } from '../../src/common/time.js'
 
 describe('parseTimeToSeconds', () => {
   it('parses numbers as seconds', () => {
