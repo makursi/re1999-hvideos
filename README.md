@@ -12,6 +12,7 @@ pnpm snap run --ep ep1   # one episode
 pnpm snap run --strict   # error on solid frames instead of auto-shifting
 pnpm snap run --dry-run  # validate + print plan (warns about auto-shifts)
 pnpm snap list           # list discovered frames specs
+pnpm re1999              # combined program (clip/snap subcommands; pnpm clip & pnpm snap are aliases)
 pnpm test                # unit tests
 pnpm lint / typecheck
 ```
@@ -20,7 +21,7 @@ pnpm lint / typecheck
 
 | Path | Purpose |
 |------|---------|
-| `src/` + `tests/` | CLIs (clip, snap), manifest/framespec/ffmpeg/time/discovery modules, unit tests |
+| `src/` + `tests/` | Single entry `src/main.ts` (program `re1999`, ADR-0006); per-pipeline dirs `src/clip/` `src/snap/` `src/common/` (manifest/framespec/solid/shift/run + run-common/ffmpeg/time/discovery); unit tests mirror modules under `tests/clip|snap|common/` |
 | `media/raw/` | Read-only source videos/audios — never modified |
 | `media/processed/` `clips/` `temp/` | Normalized / intermediate / scratch files |
 | `media/exports/epN/` | Exported clips (episode dirs) + this episode's `manifest.json` |
