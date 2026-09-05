@@ -19,12 +19,11 @@
 
 ## Source map
 
-- `src/clip.ts` / `src/snap.ts` — CLI entrypoints (commander; run/list, `--dry-run`, `--ep`, `--strict`, `--copy`; both route through the shared glue below)
-- `src/run-common.ts` — shared spec-runner glue (`collectEpisodes`, `probeSourceDurations`, `makeListAction`, `wrapAction`, `loadSpec`, `elapsedSeconds`): episode discovery + `--ep` selection, source duration probing, `list` action, top-level error handling, spec file loading. Mechanics only — domain models stay per-CLI (ADR-0004).
-- `src/manifest.ts` / `src/framespec.ts` — spec parsers & validators (ASCII-id rule, time resolution)
-- `src/ffmpeg.ts` — ffmpeg arg builders, duration probing, signalstats parsing
-- `src/solid.ts` / `src/shift.ts` — solid-frame detection (YAVG ± YMAX−YMIN) and auto-shift window policy (64 frames @ 25fps)
-- `src/time.ts` / `src/discovery.ts` — time parse/format, per-episode dir scanning
+- `src/main.ts` — single CLI entry (ADR-0006): multicall program `re1999 clip|snap`; `pnpm clip` / `pnpm snap` forward here
+- `src/clip/run.ts` / `src/snap/run.ts` — per-pipeline command builders (`buildClipCommand` / `buildSnapCommand`; commander run/list, `--dry-run`, `--ep`, `--strict`, `--copy`) plus that pipeline's orchestration (plan, probe, encode/extract, temp mgmt)
+- `src/clip/` vs `src/snap/` — the two domain-decoupled pipelines (ADR-0004); each folder owns its spec parser (`src/clip/manifest.ts` / `src/snap/framespec.ts`); snap also owns `solid.ts` / `shift.ts` (its only consumers)
+- `src/common/` — shared mechanics only, never domain models: `run-common.ts` spec-runner glue (`collectEpisodes`, `probeSourceDurations`, `makeListAction`, `wrapAction`, `loadSpec`, `elapsedSeconds`), `ffmpeg.ts` arg builders/probing/signalstats, `time.ts` / `discovery.ts` time parse/format + per-episode dir scanning
+- Tests mirror modules under `tests/clip/`, `tests/snap/`, `tests/common/` (one test file per module)
 - `tests/` — vitest, one test file per module; run `pnpm test`, `pnpm lint`, `pnpm typecheck` before pushing
 
 ## Git conventions
