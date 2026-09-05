@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { discoverEpisodeDirs } from '../src/discovery.js'
+import { discoverEpisodeDirs } from '../../src/common/discovery.js'
 
 let cleanup: string[] = []
 

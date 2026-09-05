@@ -1,17 +1,12 @@
 import { Command } from 'commander'
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { collectEpisodes, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Episode } from './run-common.js'
+import { collectEpisodes, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Episode } from '../common/run-common.js'
 import { loadManifest, resolveClipTimes, type ClipSpec, type Manifest } from './manifest.js'
-import { buildFfmpegArgs, probeDuration, runFfmpeg } from './ffmpeg.js'
-import { formatSeconds } from './time.js'
+import { buildFfmpegArgs, probeDuration, runFfmpeg } from '../common/ffmpeg.js'
+import { formatSeconds } from '../common/time.js'
 
 const EXPORTS_DIR = 'media/exports'
-
-const program = new Command()
-  .name('clip')
-  .description('Clip raw videos according to per-episode manifests (re1999-hvideos)')
-  .version('0.1.0')
 
 interface RunOptions {
   manifest?: string
@@ -23,24 +18,37 @@ interface RunOptions {
   outDir?: string
 }
 
-program
-  .command('run')
-  .description('Run all clips in the per-episode manifests')
-  .option('-m, --manifest <path>', 'explicit manifest JSON path (single-file mode)')
-  .option('--ep <ep>', 'only this episode (e.g. ep1)')
-  .option('--dry-run', 'validate and print the plan without encoding')
-  .option('--copy', 'draft mode: stream copy, cut points snap to keyframes')
-  .option('--crf <n>', 'libx264 CRF for accurate mode', '20')
-  .option('--preset <p>', 'x264 preset for accurate mode', 'fast')
-  .option('-o, --out-dir <path>', 'output directory override (default: each manifest dir)')
-  .action((options: RunOptions) => wrapAction('clip', () => runAllEpisodes(collectManifests(options), options)))
+/**
+ * Build the `clip` subcommand of the re1999 program (ADR-0006): run/list over
+ * per-episode manifests plus the clip orchestration (plan, probe, encode) that
+ * the CLI wires up. Domain stays clip-only (ADR-0004: mechanics live in
+ * `common/`, domain models never cross pipelines).
+ */
+export function buildClipCommand(): Command {
+  const program = new Command()
+    .name('clip')
+    .description('Clip raw videos according to per-episode manifests (re1999-hvideos)')
+    .version('0.1.0')
 
-program
-  .command('list')
-  .description('List discovered per-episode manifests')
-  .action(makeListAction('clip', EXPORTS_DIR, 'manifest.json', `no manifests found under ${EXPORTS_DIR}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
+  program
+    .command('run')
+    .description('Run all clips in the per-episode manifests')
+    .option('-m, --manifest <path>', 'explicit manifest JSON path (single-file mode)')
+    .option('--ep <ep>', 'only this episode (e.g. ep1)')
+    .option('--dry-run', 'validate and print the plan without encoding')
+    .option('--copy', 'draft mode: stream copy, cut points snap to keyframes')
+    .option('--crf <n>', 'libx264 CRF for accurate mode', '20')
+    .option('--preset <p>', 'x264 preset for accurate mode', 'fast')
+    .option('-o, --out-dir <path>', 'output directory override (default: each manifest dir)')
+    .action((options: RunOptions) => wrapAction('clip', () => runAllEpisodes(collectManifests(options), options)))
 
-program.parse()
+  program
+    .command('list')
+    .description('List discovered per-episode manifests')
+    .action(makeListAction('clip', EXPORTS_DIR, 'manifest.json', `no manifests found under ${EXPORTS_DIR}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
+
+  return program
+}
 
 function collectManifests(options: RunOptions): Episode<Manifest>[] {
   return collectEpisodes(EXPORTS_DIR, 'manifest.json', loadManifest, {

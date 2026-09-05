@@ -1,5 +1,5 @@
-import { parseTimeToSeconds, type TimeInput } from './time.js'
-import { loadSpec } from './run-common.js'
+import { parseTimeToSeconds, type TimeInput } from '../common/time.js'
+import { loadSpec } from '../common/run-common.js'
 
 export const FRAME_FORMATS = ['jpg', 'png', 'webp'] as const
 export type FrameFormat = typeof FRAME_FORMATS[number]

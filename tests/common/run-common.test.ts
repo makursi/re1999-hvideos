@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { collectEpisodes, elapsedSeconds, loadSpec, makeListAction, probeSourceDurations, wrapAction } from '../src/run-common.js'
+import { collectEpisodes, elapsedSeconds, loadSpec, makeListAction, probeSourceDurations, wrapAction } from '../../src/common/run-common.js'
 
 let cleanup: string[] = []
 

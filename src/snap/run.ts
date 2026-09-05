@@ -1,12 +1,12 @@
 import { Command } from 'commander'
 import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { collectEpisodes, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Episode } from './run-common.js'
+import { collectEpisodes, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Episode } from '../common/run-common.js'
 import { loadFrameSpec, resolveFrameEntry, type FrameFormat, type FramesSpec } from './framespec.js'
-import { buildSequenceArgs, probeDuration, probeImageStats, runFfmpeg } from './ffmpeg.js'
+import { buildSequenceArgs, probeDuration, probeImageStats, runFfmpeg } from '../common/ffmpeg.js'
 import { isSolidFrame } from './solid.js'
 import { firstValidFrame, planExtraction, PROJECT_FPS, SHIFT_MAX_FRAMES, WindowEndError, type ShiftResult } from './shift.js'
-import { formatSeconds } from './time.js'
+import { formatSeconds } from '../common/time.js'
 
 const SCREENSHOTS_DIR = 'media/screenshots'
 const TEMP_DIR = 'media/temp'
@@ -24,11 +24,6 @@ interface EpisodePlan {
   entries: PlanEntry[]
 }
 
-const program = new Command()
-  .name('snap')
-  .description('Extract frame screenshots from raw videos per frames.json (re1999-hvideos)')
-  .version('0.1.0')
-
 interface RunOptions {
   spec?: string
   ep?: string
@@ -36,21 +31,34 @@ interface RunOptions {
   strict: boolean
 }
 
-program
-  .command('run')
-  .description('Extract all screenshots in the per-episode frames specs')
-  .option('-m, --spec <path>', 'explicit frames spec JSON path (single-file mode)')
-  .option('--ep <ep>', 'only this episode (e.g. ep1)')
-  .option('--dry-run', 'validate and print the plan without extracting')
-  .option('--strict', 'error on solid frames instead of auto-shifting to a later valid frame')
-  .action((options: RunOptions) => wrapAction('snap', () => runAllEpisodes(collectSpecs(options), options)))
+/**
+ * Build the `snap` subcommand of the re1999 program (ADR-0006): run/list over
+ * per-episode frames specs plus the snap orchestration (plan, probe, extract,
+ * auto-shift). Domain stays snap-only (ADR-0004: mechanics live in `common/`,
+ * domain models never cross pipelines).
+ */
+export function buildSnapCommand(): Command {
+  const program = new Command()
+    .name('snap')
+    .description('Extract frame screenshots from raw videos per frames.json (re1999-hvideos)')
+    .version('0.1.0')
 
-program
-  .command('list')
-  .description('List discovered per-episode frames specs')
-  .action(makeListAction('snap', SCREENSHOTS_DIR, 'frames.json', `no frames specs found under ${SCREENSHOTS_DIR}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`))
+  program
+    .command('run')
+    .description('Extract all screenshots in the per-episode frames specs')
+    .option('-m, --spec <path>', 'explicit frames spec JSON path (single-file mode)')
+    .option('--ep <ep>', 'only this episode (e.g. ep1)')
+    .option('--dry-run', 'validate and print the plan without extracting')
+    .option('--strict', 'error on solid frames instead of auto-shifting to a later valid frame')
+    .action((options: RunOptions) => wrapAction('snap', () => runAllEpisodes(collectSpecs(options), options)))
 
-program.parse()
+  program
+    .command('list')
+    .description('List discovered per-episode frames specs')
+    .action(makeListAction('snap', SCREENSHOTS_DIR, 'frames.json', `no frames specs found under ${SCREENSHOTS_DIR}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`))
+
+  return program
+}
 
 function collectSpecs(options: RunOptions): Episode<FramesSpec>[] {
   return collectEpisodes(SCREENSHOTS_DIR, 'frames.json', loadFrameSpec, {

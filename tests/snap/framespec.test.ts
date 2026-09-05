@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseFrameSpec, resolveFrameEntry } from '../src/framespec.js'
+import { parseFrameSpec, resolveFrameEntry } from '../../src/snap/framespec.js'
 
 describe('parseFrameSpec', () => {
   it('parses a valid spec with jpg/png/webp entries', () => {

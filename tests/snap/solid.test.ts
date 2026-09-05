@@ -4,7 +4,7 @@ import {
   SOLID_RANGE_MAX,
   SOLID_YAVG_HIGH,
   SOLID_YAVG_LOW,
-} from '../src/solid.js'
+} from '../../src/snap/solid.js'
 
 describe('isSolidFrame', () => {
   it('judges the measured black frame as solid', () => {
