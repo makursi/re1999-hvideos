@@ -1,46 +1,23 @@
 # re1999-hvideos
 
-Batch-clips *Reverse: 1999* (Arcane Incident Department) raw videos into segments via per-episode `manifest.json` files, and extracts frame screenshots via per-episode `frames.json` specs — all with frame-accurate encoding (`--copy` for draft clip mode).
+Batch-clips *Reverse: 1999* (Arcane Incident Department) raw videos into per-episode segments via `manifest.json`, and extracts frame screenshots via `frames.json` — frame-accurate both ways.
 
 ```bash
-pnpm clip run            # batch-clip ALL episodes (media/exports/epN/manifest.json)
-pnpm clip run --ep ep1   # one episode
-pnpm clip run --dry-run  # validate + print plan, no encoding
-pnpm clip list           # list discovered per-episode manifests
-pnpm snap run            # extract screenshots (media/screenshots/epN/frames.json)
-pnpm snap run --ep ep1   # one episode
-pnpm snap run --strict   # error on solid frames instead of auto-shifting
-pnpm snap run --dry-run  # validate + print plan (warns about auto-shifts)
-pnpm snap list           # list discovered frames specs
-pnpm re1999              # combined program (clip/snap subcommands; pnpm clip & pnpm snap are aliases)
-pnpm test                # unit tests
-pnpm lint / typecheck
+pnpm clip                # batch clip all episodes (media/exports/epN/manifest.json)
+pnpm clip run --ep ep1   # one episode; --dry-run preview; --copy draft (keyframe-snapped)
+pnpm snap                # extract screenshots (media/screenshots/epN/frames.json)
+pnpm snap run --ep ep1   # one episode; --dry-run warns about auto-shifts; --strict disables them
+pnpm re1999              # combined entry: clip / snap subcommands (pnpm clip & pnpm snap are aliases)
+pnpm test / lint / typecheck
 ```
 
-## Directory Layout
+## Layout
 
-| Path | Purpose |
-|------|---------|
-| `src/` + `tests/` | Single entry `src/main.ts` (program `re1999`, ADR-0006); per-pipeline dirs `src/clip/` `src/snap/` `src/common/` (manifest/framespec/solid/shift/run + run-common/ffmpeg/time/discovery); unit tests mirror modules under `tests/clip|snap|common/` |
-| `media/raw/` | Read-only source videos/audios — never modified |
-| `media/processed/` `clips/` `temp/` | Normalized / intermediate / scratch files |
-| `media/exports/epN/` | Exported clips (episode dirs) + this episode's `manifest.json` |
-| `media/screenshots/epN/` | Screenshot images (episode dirs) + this episode's `frames.json` |
-| `CHANGELOG.md` | Change log (Keep a Changelog style) |
-| `docs/` | Docs & ADRs (re-encode-first clipping, per-episode manifests, frame screenshots) |
-| `.agents/skills/` | Project skills: `re1999-video-clipping/` (clip pipeline + `scripts/verify-exports.mjs`), `re1999-snap/` (screenshot pipeline), `re1999-common/PROJECT.md` (shared project reference) |
+- `media/raw/` — read-only sources · `media/exports/epN/` — clips + `manifest.json` · `media/screenshots/epN/` — images + `frames.json`
+- `src/main.ts` — single entry (ADR-0006) · `src/clip/` `src/snap/` — per-pipeline logic · `src/common/` — shared mechanics · `tests/` mirrors modules
+- Domain glossary: `CONTEXT.md` · technical decisions: `docs/adr/` (0001~0006) · project reference: `.agents/skills/re1999-common/PROJECT.md`
 
-## Clips (pnpm clip)
+## Key behavior
 
-- Spec: `media/exports/epN/manifest.json` → `{ "clips": [{ "id", "source", "in", "out" }] }`
-- Output: `media/exports/epN/{id}.mp4` (one file per segment); `-o <dir>` overrides the output dir
-- Accurate mode: libx264 re-encode, `-ss` before `-i` (frame-exact), `-crf 20 -preset fast`; `--copy` = draft mode (snaps to keyframes, ±3.5–7s — see ADR-0001)
-
-## Screenshots (pnpm snap)
-
-- Spec: `media/screenshots/epN/frames.json` → `{ "screenshots": [{ "id", "source", "at", "format", "dir?" }] }`
-  - `format`: `jpg` | `png` | `webp`; `dir` optional, defaults to the spec's own directory
-- Output: `media/screenshots/epN/{id}.{format}`
-- Extracts from **raw sources at absolute timestamps** with frame-exact `-ss`-after-`-i` decoding (ADR-0004)
-- Quality defaults: png lossless, jpg `-q:v 2`, webp `-quality 90`
-- **Auto-shift（ADR-0005）**：若 `at` 恰好落在纯色帧（黑场 / 频闪白帧），自动向后逐帧搜索 64 帧窗口内最近有效帧并输出（默认开启）；`--strict` 关闭并改为单条报错。实际取帧时刻与偏移量记录在日志，规格 `at` 不回写；`--dry-run` 逐条预警 `将自动纠偏至 ~…`
+- Clips re-encode with libx264 (frame-exact); `--copy` is a draft mode that snaps cuts to keyframes (ADR-0001)
+- Screenshots extract from raw sources at absolute timestamps; solid frames auto-shift to the next valid frame within a 64-frame window, `--strict` errors instead (ADR-0004 / ADR-0005)
