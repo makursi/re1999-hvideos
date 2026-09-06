@@ -21,6 +21,7 @@ description: re1999-hvideos 帧截图管线：按每集 frames.json 从原始素
 - `at` = 原始素材的**绝对时间戳**（秒数 / `MM:SS` / `HH:MM:SS[.mmm]`），不能 ≥ 源时长（CLI 校验）
 - `format`：`jpg`（`-q:v 2`）/ `png`（无损）/ `webp`（`-quality 90`），每条一个
 - `dir` 缺省 = 规格所在目录，产物 = `media/screenshots/epN/{id}.{format}`
+- 扫描基准目录默认 `media/screenshots`、探针临时目录默认 `media/temp`，可用 `RE1999_SCREENSHOTS_DIR`/`RE1999_TEMP_DIR` 覆盖（ADR-0007 环境配置面，详见 `../../re1999-common/PROJECT.md`）
 - `at` 保持**意图时刻**不回写：纠偏后产物文件名不变，实际取帧时刻记在日志
 - 项目级规则/素材事实见 `../../re1999-common/PROJECT.md`；截图来源永远是 `media/raw` 原片，不是剪辑产物
 
@@ -58,6 +59,7 @@ description: re1999-hvideos 帧截图管线：按每集 frames.json 从原始素
 
 - **ADR-0004 截图帧导出**：独立 snap 管线（时点而非范围）；来源 = 原始素材绝对时间戳；`-ss` 置后帧级精确；质量先写死不参数化。
 - **ADR-0005 防纯色帧自动纠偏**：双信号判定（YAVG 极端 + 全帧均匀）；只防纯色帧、静帧不判坏；向后逐帧纠偏、64 帧窗口上限、出窗报错；`at` 不回写；`--strict` 兜底。
+- **ADR-0007 环境驱动配置面**：截图/临时目录可配（`RE1999_SCREENSHOTS_DIR`/`RE1999_TEMP_DIR`），默认即 `media/` 旧布局；纠偏窗口等参数不是配置。
 - 实现注记：纠偏窗口 = `-ss at -frames:v 65` 一次解码 65 帧（`f-01` = `at` 帧、序号即相对帧号），逐张探测；探测 = 先无 filter 抽帧成图 → 单图 signalstats（单张 ~0.08s）。
 
 ## 本管线易踩坑

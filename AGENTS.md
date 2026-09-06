@@ -5,7 +5,7 @@
 ## Context pointers (load on demand)
 
 - **Domain model** — unique authority for all terms (片段/截图/纯色帧/纠偏/导出产物…): `CONTEXT.md`. Load before discussing or changing domain semantics.
-- **Technical decisions** — unique authority for pipeline behavior: `docs/adr/0001~0005` (re-encode-first clipping, ts7+oxlint, per-episode specs follow products, frame-exact screenshots, solid-frame auto-shift). Read the relevant ADR **before** changing clip/snap behavior.
+- **Technical decisions** — unique authority for pipeline behavior: `docs/adr/0001~0007` (re-encode-first clipping, ts7+oxlint, per-episode specs follow products, frame-exact screenshots, solid-frame auto-shift, env-driven config surface). Read the relevant ADR **before** changing clip/snap behavior.
 - **Project reference & pitfalls** — `.agents/skills/re1999-common/PROJECT.md`: material facts (1080p25, keyframe gap 4–7s, no audio tracks), toolchain gotchas (Chinese-path mojibake, TS7 strict inference, pnpm `allowBuilds` map syntax, git large-file traps). Reached through the pipeline skills; not duplicated here.
 - **Pipeline workflows** — `.agents/skills/re1999-video-clipping/SKILL.md` (clip: manifest → mp4 + `verify-exports.mjs`) and `.agents/skills/re1999-snap/SKILL.md` (snap: frames.json → images + auto-shift). Load when writing/editing specs, exporting, or verifying products.
 
@@ -22,7 +22,7 @@
 - `src/main.ts` — single CLI entry (ADR-0006): multicall program `re1999 clip|snap`; `pnpm clip` / `pnpm snap` forward here
 - `src/clip/run.ts` / `src/snap/run.ts` — per-pipeline command builders (`buildClipCommand` / `buildSnapCommand`; commander run/list, `--dry-run`, `--ep`, `--strict`, `--copy`) plus that pipeline's orchestration (plan, probe, encode/extract, temp mgmt)
 - `src/clip/` vs `src/snap/` — the two domain-decoupled pipelines (ADR-0004); each folder owns its spec parser (`src/clip/manifest.ts` / `src/snap/framespec.ts`); snap also owns `solid.ts` / `shift.ts` (its only consumers)
-- `src/common/` — shared mechanics only, never domain models: `run-common.ts` spec-runner glue (`collectEpisodes`, `probeSourceDurations`, `makeListAction`, `wrapAction`, `loadSpec`, `elapsedSeconds`), `ffmpeg.ts` arg builders/probing/signalstats, `time.ts` / `discovery.ts` time parse/format + per-episode dir scanning
+- `src/common/` — shared mechanics only, never domain models: `run-common.ts` spec-runner glue (`collectEpisodes`, `probeSourceDurations`, `makeListAction`, `wrapAction`, `loadSpec`, `elapsedSeconds`), `config.ts` env-driven config surface (ADR-0007, lazy getters, `vi.stubEnv`-tested), `ffmpeg.ts` arg builders/probing/signalstats, `time.ts` / `discovery.ts` time parse/format + per-episode dir scanning
 - Tests mirror modules under `tests/clip/`, `tests/snap/`, `tests/common/` (one test file per module)
 - `tests/` — vitest, one test file per module; run `pnpm test`, `pnpm lint`, `pnpm typecheck` before pushing
 

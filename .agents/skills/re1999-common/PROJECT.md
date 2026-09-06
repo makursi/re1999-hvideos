@@ -1,6 +1,6 @@
 # re1999-hvideos 项目共用参考
 
-两条管线技能（`re1999-video-clipping` 剪辑、`re1999-snap` 截图）共用的项目级事实、规则与踩坑。**领域模型的唯一权威是 `../../../CONTEXT.md`，本文不替代**；技术决策的唯一权威是 `../../../docs/adr/`（0001~0006），改动任何行为前先读对应档案。
+两条管线技能（`re1999-video-clipping` 剪辑、`re1999-snap` 截图）共用的项目级事实、规则与踩坑。**领域模型的唯一权威是 `../../../CONTEXT.md`，本文不替代**；技术决策的唯一权威是 `../../../docs/adr/`（0001~0007），改动任何行为前先读对应档案。
 
 ## 项目是什么
 
@@ -9,11 +9,12 @@
 ## 目录布局
 
 ```
-src/ + tests/             # 单一入口 src/main.ts（程序 re1999，clip/snap 子命令，ADR-0006）+ src/clip|snap/（各流水线命令构建 buildClipCommand/buildSnapCommand 与编排）+ src/common/（run-common 共享编排：发现/探测/list/错误处理/loadSpec，仅机制不涉领域模型，ADR-0004）+ 纯函数模块 + vitest 用例（61 条全绿）
+src/ + tests/             # 单一入口 src/main.ts（程序 re1999，clip/snap 子命令，ADR-0006，loadEnv 最先执行）+ src/clip|snap/（各流水线命令构建 buildClipCommand/buildSnapCommand 与编排）+ src/common/（run-common 共享编排：发现/探测/list/错误处理/loadSpec + config.ts 环境配置面，仅机制不涉领域模型，ADR-0004/0007）+ 纯函数模块 + vitest 用例（72 条全绿）
 media/raw/                # 源素材（只读，永不变更、永不提交 git）；audios/ 预留混音
-media/exports/epN/        # 剪辑产物 {id}.mp4 + 该集 manifest.json（跟随产物）
-media/screenshots/epN/    # 截图产物 {id}.{format} + 该集 frames.json（跟随产物）
-docs/adr/ 0001~0006       # 全部技术决策档案
+media/exports/epN/        # 剪辑产物 {id}.mp4 + 该集 manifest.json（跟随产物，基准目录可配）
+media/screenshots/epN/    # 截图产物 {id}.{format} + 该集 frames.json（跟随产物，基准目录可配）
+media/temp/               # snap 探针临时目录（可配，不入 git）
+docs/adr/ 0001~0007       # 全部技术决策档案
 CONTEXT.md                # 领域模型唯一权威
 CHANGELOG.md / README.md  # 变更记录 / 使用说明
 .agents/skills/           # re1999-video-clipping/（剪辑 + scripts/verify-exports.mjs）、re1999-snap/（截图）、本文件
@@ -26,6 +27,7 @@ CHANGELOG.md / README.md  # 变更记录 / 使用说明
 - **产物与规格同目录**：`manifest.json` 跟随剪辑产物、`frames.json` 跟随截图产物；规格文件进 git，媒体产物永不提交
 - **目录映射显式优先**：规格条目 `dir` 显式优先，缺省 = 规格所在目录
 - **防坏帧自动纠偏**：截图 `at` 是意图时刻，纯色帧自动向后纠偏（默认开，`--strict` 关）
+- **配置面五旋钮**（ADR-0007）：扫描基准 `RE1999_EXPORTS_DIR`/`RE1999_SCREENSHOTS_DIR`、探针临时 `RE1999_TEMP_DIR` + 二进制 `FFMPEG_BIN`/`FFPROBE_BIN`；优先级 CLI 显式参数 > shell 环境 > `.env` > 默认；空/非 ASCII 值首次使用时直接报错。**不是配置**：领域常量（帧率 25、纠偏窗口、纯色阈值）与规格 `source` 路径（数据，只读）
 
 ## 素材全局事实（实测）
 
@@ -53,4 +55,4 @@ CHANGELOG.md / README.md  # 变更记录 / 使用说明
 
 ## 工具链
 
-`pnpm typecheck` / `pnpm lint` / `pnpm lint:fix` / `pnpm test`；`FFMPEG_BIN`/`FFPROBE_BIN` 可覆盖二进制。具体命令以 `package.json` 为准。
+`pnpm typecheck` / `pnpm lint` / `pnpm lint:fix` / `pnpm test`；配置面（ADR-0007）：`RE1999_EXPORTS_DIR`/`RE1999_SCREENSHOTS_DIR`/`RE1999_TEMP_DIR` 覆盖扫描基准与临时目录、`FFMPEG_BIN`/`FFPROBE_BIN` 覆盖二进制；优先级 CLI > shell 环境 > `.env`（`process.loadEnvFile` 不覆盖已设变量，含空串）> 默认；改法 = `cp .env.example .env` 后编辑（`.env` 不提交）；Node ≥ 20.6。具体命令以 `package.json` 为准。
