@@ -15,7 +15,7 @@ pnpm test / lint / typecheck
 
 - `media/raw/` — read-only sources · `media/exports/epN/` — clips + `manifest.json` · `media/screenshots/epN/` — images + `frames.json`
 - `src/main.ts` — single entry (ADR-0006) · `src/clip/` `src/snap/` — per-pipeline logic · `src/common/` — shared mechanics · `tests/` mirrors modules
-- Domain glossary: `CONTEXT.md` · technical decisions: `docs/adr/` (0001~0007) · project reference: `.agents/skills/re1999-common/PROJECT.md`
+- Domain glossary: `CONTEXT.md` · technical decisions: `docs/adr/` (0001~0008) · project reference: `.agents/skills/re1999-common/PROJECT.md`
 
 ## Key behavior
 

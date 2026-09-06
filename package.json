@@ -12,10 +12,11 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare": "simple-git-hooks"
   },
   "engines": {
-    "node": ">=20.6"
+    "node": ">=22.22.1"
   },
   "devEngines": {
     "packageManager": {
@@ -29,9 +30,18 @@
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
+    "lint-staged": "^17.5.0",
     "oxlint": "^1.80.0",
+    "simple-git-hooks": "^2.14.0",
     "tsx": "^4.23.12",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mjs,cjs,js}": "oxlint --fix --deny-warnings"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged",
+    "pre-push": "pnpm typecheck && pnpm test"
   }
 }
