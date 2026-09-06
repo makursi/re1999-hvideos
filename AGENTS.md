@@ -5,7 +5,7 @@
 ## Context pointers (load on demand)
 
 - **Domain model** — unique authority for all terms (片段/截图/纯色帧/纠偏/导出产物…): `CONTEXT.md`. Load before discussing or changing domain semantics.
-- **Technical decisions** — unique authority for pipeline behavior: `docs/adr/0001~0007` (re-encode-first clipping, ts7+oxlint, per-episode specs follow products, frame-exact screenshots, solid-frame auto-shift, env-driven config surface). Read the relevant ADR **before** changing clip/snap behavior.
+- **Technical decisions** — unique authority for pipeline behavior: `docs/adr/0001~0008` (re-encode-first clipping, ts7+oxlint, per-episode specs follow products, frame-exact screenshots, solid-frame auto-shift, env-driven config surface, commit gate). Read the relevant ADR **before** changing clip/snap behavior.
 - **Project reference & pitfalls** — `.agents/skills/re1999-common/PROJECT.md`: material facts (1080p25, keyframe gap 4–7s, no audio tracks), toolchain gotchas (Chinese-path mojibake, TS7 strict inference, pnpm `allowBuilds` map syntax, git large-file traps). Reached through the pipeline skills; not duplicated here.
 - **Pipeline workflows** — `.agents/skills/re1999-video-clipping/SKILL.md` (clip: manifest → mp4 + `verify-exports.mjs`) and `.agents/skills/re1999-snap/SKILL.md` (snap: frames.json → images + auto-shift). Load when writing/editing specs, exporting, or verifying products.
 
@@ -16,6 +16,7 @@
 - **Specs in git, media artifacts never** — `media/exports/epN/manifest.json` / `media/screenshots/epN/frames.json` are inputs and versioned; mp4/jpg/png/webp products are ignored (see `.gitignore` negation). Check `git ls-files` before committing.
 - **Snapshots extract from `media/raw` originals at absolute `at`** — never from clip products; `at` stays the intended moment, never rewritten on auto-shift.
 - **Spec invariants**: clip ids unique per episode, `in < out`, `at` < source duration, `format` ∈ jpg/png/webp.
+- **Commit gate is enforced by hooks** — simple-git-hooks installs them; pre-commit runs lint-staged (`oxlint --fix --deny-warnings` on staged source), pre-push runs `pnpm typecheck && pnpm test` (ADR-0008). When a commit is blocked by lint, fix it and retry — never bypass with `--no-verify`.
 
 ## Source map
 
