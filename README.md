@@ -21,3 +21,17 @@ pnpm test / lint / typecheck
 
 - Clips re-encode with libx264 (frame-exact); `--copy` is a draft mode that snaps cuts to keyframes (ADR-0001)
 - Screenshots extract from raw sources at absolute timestamps; solid frames auto-shift to the next valid frame within a 64-frame window, `--strict` errors instead (ADR-0004 / ADR-0005)
+
+## Configuration (environment variables)
+
+Hardcoded paths are replaced by an environment-driven config surface (ADR-0007). All knobs are optional and keep the classic `media/` layout as defaults.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `FFMPEG_BIN` | `ffmpeg` | ffmpeg binary path |
+| `FFPROBE_BIN` | `ffprobe` | ffprobe binary path |
+| `RE1999_EXPORTS_DIR` | `media/exports` | scan base for per-episode `manifest.json` |
+| `RE1999_SCREENSHOTS_DIR` | `media/screenshots` | scan base for per-episode `frames.json` |
+| `RE1999_TEMP_DIR` | `media/temp` | snap probe workspace |
+
+Precedence: CLI flags > shell environment > `.env` file > defaults. Copy `.env.example` to `.env` to set values (`.env` is git-ignored, `.env.example` is versioned). Raw `media/raw` sources are **not** configurable — they live in the versioned spec JSONs and stay read-only.

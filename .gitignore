@@ -3,6 +3,11 @@ dist/
 coverage/
 *.log
 
+# local environment overrides (never committed); .env.example stays versioned
+.env
+.env.*
+!.env.example
+
 # generated media (never commit large outputs)
 # contents are ignored, but the per-episode dirs are re-included so
 # spec/recipe files (manifest.json / frames.json) stay versioned

@@ -6,6 +6,14 @@
 
 ### 新增（Added）
 
+- **环境变量驱动的配置面（ADR-0007）**：硬编码路径常量（`EXPORTS_DIR`/`SCREENSHOTS_DIR`/`TEMP_DIR`）与工具二进制（`FFMPEG_BIN`/`FFPROBE_BIN`）统一收进 `src/common/config.ts` 惰性 getter；`loadEnv()` 在 `src/main.ts` 入口加载 `.env`（Node 原生 `process.loadEnvFile`，不引入 dotenv）。新旋钮 `RE1999_EXPORTS_DIR`/`RE1999_SCREENSHOTS_DIR`/`RE1999_TEMP_DIR` 加 `FFMPEG_BIN`/`FFPROBE_BIN`，默认值即旧常量、行为完全兼容；优先级 CLI 旗标 > shell 环境 > `.env` > 默认；空值/非 ASCII 值拒绝并报错；`.env` 进 `.gitignore`，`.env.example` 进 git。规格 `source` 路径是数据而非配置，`media/raw` 只读不变；新测试 `tests/common/config.test.ts`（`vi.stubEnv` 注入，不读真实环境）。
+
+### 文档（Docs）
+
+- ADR-0007；`CONTEXT.md` 新增“配置项（config knob）”词条；`README.md` 新增 Configuration 环境变量表。
+
+### 新增（Added）
+
 - **防纯色帧自动纠偏（ADR-0005）**：截图执行时若 `at` 落在纯色帧（整帧同亮度：黑场 / 频闪白帧），自动向后逐帧搜索窗口内最近有效帧并输出：
   - 判定双信号：YAVG 处于极端区间（黑 ≈0、白 ≈255）**且**全帧亮度均匀——本机 ffmpeg（n9.0.1）signalstats 不输出 YSTD，均匀性以 `YMAX-YMIN ≤ 16` 实现；
   - 窗口上限 64 帧（≈2.56s），纠偏窗口一次解码抽取 65 帧逐张探测，首个有效帧即产物；出窗无有效帧 → 单条报错、跳过其余继续、汇总非零退出码，绝不悄悄输出远处帧；

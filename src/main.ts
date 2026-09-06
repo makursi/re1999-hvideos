@@ -1,4 +1,5 @@
-import { Command } from 'commander'
+import { Command } from 'commander' //nodejs的命令行库
+import { loadEnv } from './common/config.js'
 import { buildClipCommand } from './clip/run.js'
 import { buildSnapCommand } from './snap/run.js'
 
@@ -11,6 +12,8 @@ import { buildSnapCommand } from './snap/run.js'
  * `pnpm snap` in package.json forward here, so routine operations keep their
  * muscle memory; `pnpm re1999` exposes the combined program.
  */
+loadEnv()
+
 const program = new Command()
   .name('re1999')
   .description('re1999-hvideos: clip raw videos per manifests, extract screenshots per frames specs')

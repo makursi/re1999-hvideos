@@ -1,15 +1,13 @@
 import { Command } from 'commander'
 import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { config } from '../common/config.js'
 import { collectEpisodes, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Episode } from '../common/run-common.js'
 import { loadFrameSpec, resolveFrameEntry, type FrameFormat, type FramesSpec } from './framespec.js'
 import { buildSequenceArgs, probeDuration, probeImageStats, runFfmpeg } from '../common/ffmpeg.js'
 import { isSolidFrame } from './solid.js'
 import { firstValidFrame, planExtraction, PROJECT_FPS, SHIFT_MAX_FRAMES, WindowEndError, type ShiftResult } from './shift.js'
 import { formatSeconds } from '../common/time.js'
-
-const SCREENSHOTS_DIR = 'media/screenshots'
-const TEMP_DIR = 'media/temp'
 
 interface PlanEntry {
   id: string
@@ -55,13 +53,13 @@ export function buildSnapCommand(): Command {
   program
     .command('list')
     .description('List discovered per-episode frames specs')
-    .action(makeListAction('snap', SCREENSHOTS_DIR, 'frames.json', `no frames specs found under ${SCREENSHOTS_DIR}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`))
+    .action(makeListAction('snap', config.screenshotsDir, 'frames.json', `no frames specs found under ${config.screenshotsDir}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`))
 
   return program
 }
 
 function collectSpecs(options: RunOptions): Episode<FramesSpec>[] {
-  return collectEpisodes(SCREENSHOTS_DIR, 'frames.json', loadFrameSpec, {
+  return collectEpisodes(config.screenshotsDir, 'frames.json', loadFrameSpec, {
     explicitPath: options.spec,
     ep: options.ep,
     kind: 'frames specs',
@@ -168,7 +166,7 @@ async function runPlanDry(
   let failed = 0
   for (const p of plan) {
     for (const e of p.entries) {
-      const tempDir = join(TEMP_DIR, `snap-${process.pid}-${e.id}`)
+      const tempDir = join(config.tempDir, `snap-${process.pid}-${e.id}`)
       try {
         const shot = await resolveShot(e.source, e.at, e.format, tempDir, strict)
         if (shot.kind === 'direct') {
@@ -207,7 +205,7 @@ async function runPlan(
   for (const p of plan) {
     for (const e of p.entries) {
       mkdirSync(dirname(e.output), { recursive: true })
-      const tempDir = join(TEMP_DIR, `snap-${process.pid}-${e.id}`)
+      const tempDir = join(config.tempDir, `snap-${process.pid}-${e.id}`)
       console.log(`[snap] extracting ${p.name} ${e.id} ...`)
       try {
         const shot = await resolveShot(e.source, e.at, e.format, tempDir, strict)

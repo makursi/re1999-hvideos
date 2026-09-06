@@ -1,12 +1,11 @@
 import { Command } from 'commander'
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { config } from '../common/config.js'
 import { collectEpisodes, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Episode } from '../common/run-common.js'
 import { loadManifest, resolveClipTimes, type ClipSpec, type Manifest } from './manifest.js'
 import { buildFfmpegArgs, probeDuration, runFfmpeg } from '../common/ffmpeg.js'
 import { formatSeconds } from '../common/time.js'
-
-const EXPORTS_DIR = 'media/exports'
 
 interface RunOptions {
   manifest?: string
@@ -45,13 +44,13 @@ export function buildClipCommand(): Command {
   program
     .command('list')
     .description('List discovered per-episode manifests')
-    .action(makeListAction('clip', EXPORTS_DIR, 'manifest.json', `no manifests found under ${EXPORTS_DIR}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
+    .action(makeListAction('clip', config.exportsDir, 'manifest.json', `no manifests found under ${config.exportsDir}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
 
   return program
 }
 
 function collectManifests(options: RunOptions): Episode<Manifest>[] {
-  return collectEpisodes(EXPORTS_DIR, 'manifest.json', loadManifest, {
+  return collectEpisodes(config.exportsDir, 'manifest.json', loadManifest, {
     explicitPath: options.manifest,
     ep: options.ep,
     kind: 'manifests',
