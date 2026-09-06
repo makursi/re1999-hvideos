@@ -15,6 +15,7 @@ description: re1999-hvideos 视频剪辑管线：按每集 manifest.json 把原�
 
 - 源素材 `media/raw/videos/<series>/epNN.mp4`（只读、ASCII 命名；epNN → 中文标题映射见 `media/raw/videos/README.md`）
 - 每集清单 `media/exports/epN/manifest.json`（跟随产物目录）：`{ "clips": [ { "id", "source", "in", "out" } ] }`
+- 扫描基准目录默认 `media/exports`，可用 `RE1999_EXPORTS_DIR` 覆盖（ADR-0007 环境配置面，详见 `../../re1999-common/PROJECT.md`）；CLI 显式参数（`-m`/`-o`）仍优先
 - `id` 该集内唯一，产物 = `media/exports/epN/{id}.mp4`
 - 时间支持秒数（`30`）/ `MM:SS` / `HH:MM:SS[.mmm]`；约束 `in < out`、`out ≤ 源时长`（CLI 校验）
 - 项目级规则与全局素材事实（素材只读、路径全 ASCII、大文件不提交等）见 `../../re1999-common/PROJECT.md`
@@ -48,6 +49,7 @@ description: re1999-hvideos 视频剪辑管线：按每集 manifest.json 把原�
 
 - **ADR-0001 重编码剪辑优先**：素材关键帧间隔 4~7s（实测）→ 流拷贝切点吸附误差不可接受；默认重编码帧级精确，`--copy` 仅草稿。
 - **ADR-0003 每集清单跟随产物**：清单按集拆分、跟随产物目录，CLI 按集扫描；`.gitignore` 忽略媒体产物但保留规格文件进 git。
+- **ADR-0007 环境驱动配置面**：产物扫描基准等旋钮可环境变量覆盖（默认即 `media/` 旧布局）；规格 `source` 仍是数据、非配置。
 - 工具链决策（ts7-oxlint）与截图/纠偏决策分别见 PROJECT.md 与 `re1999-snap` 技能。
 
 ## 本管线易踩坑
