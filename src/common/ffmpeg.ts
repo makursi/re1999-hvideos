@@ -1,10 +1,8 @@
 import { spawn } from 'node:child_process'
 import { execFileSync } from 'node:child_process'
+import { config } from './config.js'
 import type { FrameFormat } from '../snap/framespec.js'
 import type { FrameStats } from '../snap/solid.js'
-
-export const FFMPEG_BIN = process.env.FFMPEG_BIN ?? 'ffmpeg'
-export const FFPROBE_BIN = process.env.FFPROBE_BIN ?? 'ffprobe'
 
 /** Per-format quality defaults (jpg: mjpeg qscale 2 = highest, webp: lossy 90). */
 const FRAME_IMAGE_OPTS: Record<FrameFormat, string[]> = {
@@ -21,7 +19,7 @@ export interface EncodeOptions {
 
 export function probeDuration(source: string): number {
   const out = execFileSync(
-    FFPROBE_BIN,
+    config.ffprobeBin,
     ['-v', 'error', '-show_entries', 'format=duration', '-of', 'json', source],
     { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 },
   )
@@ -57,7 +55,7 @@ export function buildFfmpegArgs(
 
 export function runFfmpeg(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(FFMPEG_BIN, args, { stdio: ['ignore', 'inherit', 'inherit'] })
+    const child = spawn(config.ffmpegBin, args, { stdio: ['ignore', 'inherit', 'inherit'] })
     child.on('error', reject)
     child.on('close', (code) => {
       if (code === 0)
@@ -103,7 +101,7 @@ export async function probeImageStats(imagePath: string): Promise<FrameStats> {
     '-',
   ]
   const stderr = await new Promise<string>((resolve, reject) => {
-    const child = spawn(FFMPEG_BIN, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn(config.ffmpegBin, args, { stdio: ['ignore', 'pipe', 'pipe'] })
     let out = ''
     child.stderr.on('data', (chunk: Buffer) => { out += chunk.toString() })
     child.on('error', reject)

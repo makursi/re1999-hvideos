@@ -122,7 +122,7 @@ describe('makeListAction', () => {
 
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     try {
-      makeListAction('snap', base, 'frames.json', `no frames specs found under ${base}`, () => '3 screenshot(s)')()
+      makeListAction('snap', () => base, 'frames.json', () => `no frames specs found under ${base}`, () => '3 screenshot(s)')()
       expect(log).toHaveBeenCalledWith('  ep1: 3 screenshot(s)')
     }
     finally {
@@ -134,7 +134,7 @@ describe('makeListAction', () => {
     const base = makeBase()
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     try {
-      makeListAction('clip', base, 'manifest.json', `no manifests found under ${base}`, () => '0 clip(s)')()
+      makeListAction('clip', () => base, 'manifest.json', () => `no manifests found under ${base}`, () => '0 clip(s)')()
       expect(log).toHaveBeenCalledWith(`[clip] no manifests found under ${base}`)
     }
     finally {
@@ -149,7 +149,7 @@ describe('makeListAction', () => {
 
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     try {
-      makeListAction('snap', base, 'frames.json', `no frames specs found under ${base}`, () => {
+      makeListAction('snap', () => base, 'frames.json', () => `no frames specs found under ${base}`, () => {
         throw new Error('bad spec')
       })()
       expect(log).toHaveBeenCalledWith('  ep1: ERROR (bad spec)')
