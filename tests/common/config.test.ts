@@ -47,6 +47,16 @@ describe('env override', () => {
     vi.stubEnv('RE1999_EXPORTS_DIR', '媒体/exports')
     expect(() => config.exportsDir).toThrow(/must be ASCII/)
   })
+
+  it('rejects an empty FFMPEG_BIN', () => {
+    vi.stubEnv('FFMPEG_BIN', '')
+    expect(() => config.ffmpegBin).toThrow(/must not be empty/)
+  })
+
+  it('rejects a non-ASCII FFMPEG_BIN', () => {
+    vi.stubEnv('FFMPEG_BIN', '我的-ff')
+    expect(() => config.ffmpegBin).toThrow(/must be ASCII/)
+  })
 })
 
 describe('loadEnv', () => {
@@ -72,6 +82,20 @@ describe('loadEnv', () => {
       writeFileSync(file, 'RE1999_TEMP_DIR=file-loses\n')
       loadEnv(file)
       expect(config.tempDir).toBe('shell-wins')
+    }
+    finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('a shell empty value still beats the .env file (and is rejected)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 're1999-env-'))
+    const file = join(dir, '.env')
+    try {
+      vi.stubEnv('RE1999_TEMP_DIR', '')
+      writeFileSync(file, 'RE1999_TEMP_DIR=file-value\n')
+      loadEnv(file)
+      expect(() => config.tempDir).toThrow(/must not be empty/)
     }
     finally {
       rmSync(dir, { recursive: true, force: true })

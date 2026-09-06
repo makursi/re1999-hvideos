@@ -44,7 +44,7 @@ export function buildClipCommand(): Command {
   program
     .command('list')
     .description('List discovered per-episode manifests')
-    .action(makeListAction('clip', config.exportsDir, 'manifest.json', `no manifests found under ${config.exportsDir}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
+    .action(makeListAction('clip', () => config.exportsDir, 'manifest.json', (baseDir) => `no manifests found under ${baseDir}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
 
   return program
 }

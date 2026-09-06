@@ -53,7 +53,7 @@ export function buildSnapCommand(): Command {
   program
     .command('list')
     .description('List discovered per-episode frames specs')
-    .action(makeListAction('snap', config.screenshotsDir, 'frames.json', `no frames specs found under ${config.screenshotsDir}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`))
+    .action(makeListAction('snap', () => config.screenshotsDir, 'frames.json', (baseDir) => `no frames specs found under ${baseDir}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`))
 
   return program
 }

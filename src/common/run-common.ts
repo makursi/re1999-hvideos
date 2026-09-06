@@ -101,18 +101,24 @@ export async function wrapAction(tag: string, run: () => Promise<void>): Promise
   }
 }
 
-/** Commander action that lists discovered per-episode specs with their counts. */
+/**
+ * Commander action that lists discovered per-episode specs with their counts.
+ * `getBaseDir` is read lazily inside the action (ADR-0007), so an invalid
+ * config value surfaces through commander's error handling instead of
+ * crashing even `--help` at command-build time.
+ */
 export function makeListAction(
   tag: string,
-  baseDir: string,
+  getBaseDir: () => string,
   specFilename: string,
-  emptyMessage: string,
+  emptyMessage: (baseDir: string) => string,
   describe: (path: string) => string,
 ): () => void {
   return () => {
+    const baseDir = getBaseDir()
     const names = discoverEpisodeDirs(baseDir, specFilename)
     if (names.length === 0) {
-      console.log(`[${tag}] ${emptyMessage}`)
+      console.log(`[${tag}] ${emptyMessage(baseDir)}`)
       return
     }
     for (const name of names) {
