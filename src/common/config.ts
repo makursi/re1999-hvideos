@@ -1,18 +1,21 @@
 import { existsSync } from 'node:fs'
 
 /**
- * Environment-driven configuration surface (ADR-0007).
+ * Environment-driven configuration surface (ADR-0007, revised by ADR-0009).
  *
- * The whole config surface is exactly five knobs: the spec scan bases and
- * temp workspace (`RE1999_*`) plus the ffmpeg/ffprobe binaries (kept under
- * their widely-known unprefixed names). Domain constants — 25 fps, shift
- * window, solid-frame thresholds, epNN naming, the ASCII path rule — are
- * domain truth (see CONTEXT.md), never configuration. Raw `source` paths in
- * the versioned spec JSONs are data, not configuration either.
+ * The whole config surface is exactly five knobs: the three-stage media roots
+ * — spec scan base (`RE1999_WORK_DIR`), product default root
+ * (`RE1999_OUTPUT_DIR`) and temp workspace (`RE1999_TEMP_DIR`) — plus the
+ * ffmpeg/ffprobe binaries (kept under their widely-known unprefixed names).
+ * There is deliberately no input knob: raw `source` paths in the versioned
+ * spec JSONs are data, not configuration (plugins live under
+ * `media/input/<project>` per ADR-0009). Domain constants — 25 fps, shift
+ * window, solid-frame thresholds, the ASCII path rule — are domain truth (see
+ * CONTEXT.md), never configuration.
  *
  * Values are read lazily through getters so `loadEnv()` can run first in
  * main.ts, and tests can inject via `vi.stubEnv` without touching the real
- * environment. Precedence (Q6): CLI flags > environment (shell beats .env —
+ * environment. Precedence: CLI flags > environment (shell beats .env —
  * `process.loadEnvFile` never overrides an already-set variable) > defaults.
  */
 export function loadEnv(path = '.env'): void {
@@ -41,13 +44,21 @@ function hasNonAscii(value: string): boolean {
 
 /** The env-driven configuration surface (ADR-0007). */
 export const config = {
-  /** Scan base for per-episode manifests (clip list/run discovery). */
-  get exportsDir(): string {
-    return envString('RE1999_EXPORTS_DIR', 'media/exports')
+  /**
+   * Spec scan root: per-project spec trees live under
+   * `<workDir>/<project>/<clips|screenshots>/<unit>/` (clip run/list and
+   * snap run/list discovery, ADR-0009).
+   */
+  get workDir(): string {
+    return envString('RE1999_WORK_DIR', 'media/work')
   },
-  /** Scan base for per-episode frames specs (snap list/run discovery). */
-  get screenshotsDir(): string {
-    return envString('RE1999_SCREENSHOTS_DIR', 'media/screenshots')
+  /**
+   * Default product root: products land at `<outputDir>/<project>/<clips|screenshots>/<unit>/`,
+   * mirroring the spec path under the work root (ADR-0009). Explicit `dir` /
+   * `-o` overrides still win.
+   */
+  get outputDir(): string {
+    return envString('RE1999_OUTPUT_DIR', 'media/output')
   },
   /** Snap probe workspace root (per-shot temp dirs live under it). */
   get tempDir(): string {

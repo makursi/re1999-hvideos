@@ -2,7 +2,7 @@ import { Command } from 'commander'
 import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { config } from '../common/config.js'
-import { collectEpisodes, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Episode } from '../common/run-common.js'
+import { collectUnits, defaultProductDir, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Unit } from '../common/run-common.js'
 import { loadFrameSpec, resolveFrameEntry, type FrameFormat, type FramesSpec } from './framespec.js'
 import { buildSequenceArgs, probeDuration, probeImageStats, runFfmpeg } from '../common/ffmpeg.js'
 import { isSolidFrame } from './solid.js'
@@ -17,51 +17,57 @@ interface PlanEntry {
   output: string
 }
 
-interface EpisodePlan {
+interface UnitPlan {
+  project: string
   name: string
   entries: PlanEntry[]
 }
 
 interface RunOptions {
   spec?: string
-  ep?: string
+  project?: string
+  unit?: string
   dryRun: boolean
   strict: boolean
 }
 
 /**
  * Build the `snap` subcommand of the re1999 program (ADR-0006): run/list over
- * per-episode frames specs plus the snap orchestration (plan, probe, extract,
+ * per-unit frames specs plus the snap orchestration (plan, probe, extract,
  * auto-shift). Domain stays snap-only (ADR-0004: mechanics live in `common/`,
- * domain models never cross pipelines).
+ * domain models never cross pipelines). Specs live under
+ * `<workDir>/<project>/screenshots/<unit>/frames.json` and products default
+ * to the mirrored `outputDir` (ADR-0009).
  */
 export function buildSnapCommand(): Command {
   const program = new Command()
     .name('snap')
     .description('Extract frame screenshots from raw videos per frames.json (re1999-hvideos)')
-    .version('0.1.0')
+    .version('0.3.0')
 
   program
     .command('run')
-    .description('Extract all screenshots in the per-episode frames specs')
+    .description('Extract all screenshots in the per-unit frames specs')
     .option('-m, --spec <path>', 'explicit frames spec JSON path (single-file mode)')
-    .option('--ep <ep>', 'only this episode (e.g. ep1)')
+    .option('--project <project>', 'only this project (e.g. 1999); default: all projects')
+    .option('--unit <unit>', 'only this unit (e.g. ep1); default: all units of the selected projects')
     .option('--dry-run', 'validate and print the plan without extracting')
     .option('--strict', 'error on solid frames instead of auto-shifting to a later valid frame')
-    .action((options: RunOptions) => wrapAction('snap', () => runAllEpisodes(collectSpecs(options), options)))
+    .action((options: RunOptions) => wrapAction('snap', () => runAllUnits(collectSpecs(options), options)))
 
   program
     .command('list')
-    .description('List discovered per-episode frames specs')
-    .action(makeListAction('snap', () => config.screenshotsDir, 'frames.json', (baseDir) => `no frames specs found under ${baseDir}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`))
+    .description('List discovered per-unit frames specs by project')
+    .action(makeListAction('snap', () => config.workDir, 'screenshots', 'frames.json', (baseDir) => `no frames specs found under ${baseDir}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`))
 
   return program
 }
 
-function collectSpecs(options: RunOptions): Episode<FramesSpec>[] {
-  return collectEpisodes(config.screenshotsDir, 'frames.json', loadFrameSpec, {
+function collectSpecs(options: RunOptions): Unit<FramesSpec>[] {
+  return collectUnits(config.workDir, 'screenshots', 'frames.json', loadFrameSpec, {
     explicitPath: options.spec,
-    ep: options.ep,
+    project: options.project,
+    unit: options.unit,
     kind: 'frames specs',
   })
 }
@@ -126,26 +132,30 @@ async function resolveShot(
   return { kind: 'error', reason: plan.reason }
 }
 
-async function runAllEpisodes(episodes: Episode<FramesSpec>[], options: RunOptions): Promise<void> {
+async function runAllUnits(units: Unit<FramesSpec>[], options: RunOptions): Promise<void> {
   // Probe distinct sources once; validate range against real duration.
-  const durations = probeSourceDurations(episodes.flatMap(ep => ep.loaded.screenshots), probeDuration, 'screenshot source')
+  const durations = probeSourceDurations(units.flatMap(u => u.loaded.screenshots), probeDuration, 'screenshot source')
 
-  const plan: EpisodePlan[] = episodes.map(ep => ({
-    name: ep.name,
-    entries: ep.loaded.screenshots.map((s) => {
-      const { at, output } = resolveFrameEntry(s, dirname(ep.specPath))
-      const sourceDuration = durations.get(s.source)!
-      if (at >= sourceDuration)
-        throw new Error(`screenshot "${s.id}": at (${formatSeconds(at)}) is not before source duration (${formatSeconds(sourceDuration)})`)
-      return { id: s.id, at, format: s.format, source: s.source, output } satisfies PlanEntry
-    }),
-  }))
+  const plan: UnitPlan[] = units.map(unit => {
+    const defaultDir = defaultProductDir(unit.specPath, config.workDir, config.outputDir)
+    return {
+      project: unit.project,
+      name: unit.name,
+      entries: unit.loaded.screenshots.map((s) => {
+        const { at, output } = resolveFrameEntry(s, defaultDir)
+        const sourceDuration = durations.get(s.source)!
+        if (at >= sourceDuration)
+          throw new Error(`screenshot "${s.id}": at (${formatSeconds(at)}) is not before source duration (${formatSeconds(sourceDuration)})`)
+        return { id: s.id, at, format: s.format, source: s.source, output } satisfies PlanEntry
+      }),
+    }
+  })
 
   const total = plan.reduce((sum, p) => sum + p.entries.length, 0)
-  console.log(`[snap] plan: ${plan.length} episode(s), ${total} screenshots${options.strict ? ', strict mode (auto-shift off)' : ''}`)
+  console.log(`[snap] plan: ${plan.length} unit(s), ${total} screenshots${options.strict ? ', strict mode (auto-shift off)' : ''}`)
   for (const p of plan) {
     for (const e of p.entries)
-      console.log(`  ${p.name} ${e.id}: at ${formatSeconds(e.at)} (${e.format})  ->  ${e.output}`)
+      console.log(`  ${p.project}/${p.name} ${e.id}: at ${formatSeconds(e.at)} (${e.format})  ->  ${e.output}`)
   }
 
   if (options.dryRun) {
@@ -156,7 +166,7 @@ async function runAllEpisodes(episodes: Episode<FramesSpec>[], options: RunOptio
 }
 
 async function runPlanDry(
-  plan: EpisodePlan[],
+  plan: UnitPlan[],
   strict: boolean,
   total: number,
 ): Promise<void> {
@@ -170,18 +180,18 @@ async function runPlanDry(
       try {
         const shot = await resolveShot(e.source, e.at, e.format, tempDir, strict)
         if (shot.kind === 'direct') {
-          console.log(`  ${p.name} ${e.id}: at ${formatSeconds(e.at)} is a valid frame`)
+          console.log(`  ${p.project}/${p.name} ${e.id}: at ${formatSeconds(e.at)} is a valid frame`)
         }
         else if (shot.kind === 'shift') {
-          console.log(`  ${p.name} ${e.id}: at ${formatSeconds(e.at)} is a solid frame; will auto-shift to ~${formatSeconds(shot.time)} (+${shot.frames} frame${shot.frames === 1 ? '' : 's'})`)
+          console.log(`  ${p.project}/${p.name} ${e.id}: at ${formatSeconds(e.at)} is a solid frame; will auto-shift to ~${formatSeconds(shot.time)} (+${shot.frames} frame${shot.frames === 1 ? '' : 's'})`)
         }
         else {
-          console.log(`  ${p.name} ${e.id}: WARN ${shot.reason}; will skip`)
+          console.log(`  ${p.project}/${p.name} ${e.id}: WARN ${shot.reason}; will skip`)
           failed += 1
         }
       }
       catch (error) {
-        console.log(`  ${p.name} ${e.id}: ERROR (${(error as Error).message})`)
+        console.log(`  ${p.project}/${p.name} ${e.id}: ERROR (${(error as Error).message})`)
         failed += 1
       }
       finally {
@@ -196,7 +206,7 @@ async function runPlanDry(
 }
 
 async function runPlan(
-  plan: EpisodePlan[],
+  plan: UnitPlan[],
   strict: boolean,
   total: number,
 ): Promise<void> {
@@ -206,7 +216,7 @@ async function runPlan(
     for (const e of p.entries) {
       mkdirSync(dirname(e.output), { recursive: true })
       const tempDir = join(config.tempDir, `snap-${process.pid}-${e.id}`)
-      console.log(`[snap] extracting ${p.name} ${e.id} ...`)
+      console.log(`[snap] extracting ${p.project}/${p.name} ${e.id} ...`)
       try {
         const shot = await resolveShot(e.source, e.at, e.format, tempDir, strict)
         if (shot.kind === 'error') {

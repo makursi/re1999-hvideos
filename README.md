@@ -1,37 +1,40 @@
 # re1999-hvideos
 
-Batch-clips *Reverse: 1999* (Arcane Incident Department) raw videos into per-episode segments via `manifest.json`, and extracts frame screenshots via `frames.json` — frame-accurate both ways.
+Batch media tool: clips raw videos into per-unit segments via `manifest.json`, and extracts frame screenshots via `frames.json` — frame-accurate both ways. Started on *Reverse: 1999* (Arcane Incident Department), generalized to any input project (ADR-0009).
 
 ```bash
-pnpm clip                # batch clip all episodes (media/exports/epN/manifest.json)
-pnpm clip run --ep ep1   # one episode; --dry-run preview; --copy draft (keyframe-snapped)
-pnpm snap                # extract screenshots (media/screenshots/epN/frames.json)
-pnpm snap run --ep ep1   # one episode; --dry-run warns about auto-shifts; --strict disables them
-pnpm re1999              # combined entry: clip / snap subcommands (pnpm clip & pnpm snap are aliases)
+pnpm clip                        # batch clip all projects/units (media/work/<project>/clips/<unit>/manifest.json)
+pnpm clip run --project 1999 --unit ep1   # one unit; --dry-run preview; --copy draft (keyframe-snapped)
+pnpm snap                        # extract screenshots (media/work/<project>/screenshots/<unit>/frames.json)
+pnpm snap run --project 1999 --unit ep1   # one unit; --dry-run warns about auto-shifts; --strict disables them
+pnpm re1999                      # combined entry: clip / snap subcommands (pnpm clip & pnpm snap are aliases)
 pnpm test / lint / typecheck
 ```
 
-## Layout
+## Layout (input → work → output, ADR-0009)
 
-- `media/raw/` — read-only sources · `media/exports/epN/` — clips + `manifest.json` · `media/screenshots/epN/` — images + `frames.json`
+- `media/input/<project>/` — read-only raw sources (+ `README.md` mapping per project), never in git
+- `media/work/<project>/<clips|screenshots>/<unit>/` — versioned specs (`manifest.json` / `frames.json`)
+- `media/output/<project>/<clips|screenshots>/<unit>/` — products (mp4 / jpg/png/webp), never in git
 - `src/main.ts` — single entry (ADR-0006) · `src/clip/` `src/snap/` — per-pipeline logic · `src/common/` — shared mechanics · `tests/` mirrors modules
-- Domain glossary: `CONTEXT.md` · technical decisions: `docs/adr/` (0001~0008) · project reference: `.agents/skills/re1999-common/PROJECT.md`
+- Domain glossary: `CONTEXT.md` · technical decisions: `docs/adr/` (0001~0009) · project reference: `.agents/skills/re1999-common/PROJECT.md`
 
 ## Key behavior
 
 - Clips re-encode with libx264 (frame-exact); `--copy` is a draft mode that snaps cuts to keyframes (ADR-0001)
-- Screenshots extract from raw sources at absolute timestamps; solid frames auto-shift to the next valid frame within a 64-frame window, `--strict` errors instead (ADR-0004 / ADR-0005)
+- Product dirs default to the work→output mirror of each spec (explicit `dir` / `-o` overrides still win, ADR-0009)
+- Screenshots extract from input sources at absolute timestamps; solid frames auto-shift to the next valid frame within a 64-frame window, `--strict` errors instead (ADR-0004 / ADR-0005)
 
 ## Configuration (environment variables)
 
-Hardcoded paths are replaced by an environment-driven config surface (ADR-0007). All knobs are optional and keep the classic `media/` layout as defaults.
+Environment-driven config surface (ADR-0007, revised by ADR-0009). All knobs are optional and keep the three-stage `media/` layout as defaults.
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `FFMPEG_BIN` | `ffmpeg` | ffmpeg binary path |
 | `FFPROBE_BIN` | `ffprobe` | ffprobe binary path |
-| `RE1999_EXPORTS_DIR` | `media/exports` | scan base for per-episode `manifest.json` |
-| `RE1999_SCREENSHOTS_DIR` | `media/screenshots` | scan base for per-episode `frames.json` |
+| `RE1999_WORK_DIR` | `media/work` | spec scan root (`<work>/<project>/<clips|screenshots>/<unit>/`) |
+| `RE1999_OUTPUT_DIR` | `media/output` | default product root (work→output mirror) |
 | `RE1999_TEMP_DIR` | `media/temp` | snap probe workspace |
 
-Precedence: CLI flags > shell environment > `.env` file > defaults. Copy `.env.example` to `.env` to set values (`.env` is git-ignored, `.env.example` is versioned). Raw `media/raw` sources are **not** configurable — they live in the versioned spec JSONs and stay read-only.
+Precedence: CLI flags > shell environment > `.env` file > defaults. Copy `.env.example` to `.env` to set values (`.env` is git-ignored, `.env.example` is versioned). Raw `media/input` sources are **not** configurable — they live in the versioned spec JSONs and stay read-only.

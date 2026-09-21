@@ -12,7 +12,11 @@ export interface FrameSpec {
   source: string
   at: TimeInput
   format: FrameFormat
-  /** Output directory override; defaults to the spec file's own directory. */
+  /**
+   * Output directory override. Defaults to the caller-provided default
+   * directory — the work→output mirror of the spec dir in the standard
+   * three-stage layout (ADR-0009).
+   */
   dir?: string
 }
 

@@ -6,6 +6,23 @@
 
 ### 新增（Added）
 
+- **三段式媒体目录与项目级泛化（ADR-0009）**：定位从"1999 专用"放宽为**通用媒体工具**；`media` 重构为 输入(`media/input/<项目>`) → 操作(`media/work/<项目>/<类(clips|screenshots)>/<单元>`) → 输出(`media/output/<项目>/<类>/<单元>`) 三段式；CLI 新增可选 `--project`（缺省全量）、`--ep` 更名 `--unit`，`list` 按 项目→单元 两级展示；产物默认 = work→output 镜像（显式 `dir`/`-o` 仍优先）；配置旋钮 `RE1999_EXPORTS_DIR`/`RE1999_SCREENSHOTS_DIR` → `RE1999_WORK_DIR`/`RE1999_OUTPUT_DIR`；1999 现有素材零删除零转码迁入 `media/input/1999/`（`videos/` + `audios/` + README 映射），规格 git mv 至 `media/work/1999/` 并改写 `source` 为 `media/input/1999/videos/...`；仓库名/CLI 程序名 `re1999` 不变。
+
+### 变更（Changed）
+
+- 领域模型：术语「集/每集」→「单元（unit）」；规则"产物与规格同目录"（ADR-0003）→"规格与产物分层（work→output 镜像）"（被 ADR-0009 取代）。
+- discovery 升级为项目级双层扫描 `<work>/<项目>/<类>/<单元>/<规格>`；`verify-exports.mjs` 适配新布局（扫描 `media/work`、核验 `media/output` 镜像产物）。
+- 测试 72 → 79 条全绿（typecheck / oxlint 通过）；`package.json` 版本对齐 0.3.0。
+
+### 文档（Docs）
+
+- 新 ADR `0009-三段式媒体目录与项目级泛化.md`；ADR-0003 标注被 0009 取代。
+- `CONTEXT.md`（项目/单元/三段式词条 + 规则更新）、`README.md`（布局与命令速查）、`AGENTS.md`（guardrail 路径）、两管线 `SKILL.md`、`re1999-common/PROJECT.md`、`.env.example`、`.gitignore` 全部同步。
+
+> 以下为 0.3.0 之前积累的未发布条目：
+
+### 新增（Added）
+
 - **环境变量驱动的配置面（ADR-0007）**：硬编码路径常量（`EXPORTS_DIR`/`SCREENSHOTS_DIR`/`TEMP_DIR`）与工具二进制（`FFMPEG_BIN`/`FFPROBE_BIN`）统一收进 `src/common/config.ts` 惰性 getter；`loadEnv()` 在 `src/main.ts` 入口加载 `.env`（Node 原生 `process.loadEnvFile`，不引入 dotenv）。新旋钮 `RE1999_EXPORTS_DIR`/`RE1999_SCREENSHOTS_DIR`/`RE1999_TEMP_DIR` 加 `FFMPEG_BIN`/`FFPROBE_BIN`，默认值即旧常量、行为完全兼容；优先级 CLI 旗标 > shell 环境 > `.env` > 默认；空值/非 ASCII 值拒绝并报错；`.env` 进 `.gitignore`，`.env.example` 进 git。规格 `source` 路径是数据而非配置，`media/raw` 只读不变；新测试 `tests/common/config.test.ts`（`vi.stubEnv` 注入，不读真实环境）。
 
 ### 文档（Docs）

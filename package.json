@@ -1,7 +1,7 @@
 {
   "name": "re1999-hvideos",
-  "version": "0.1.0",
-  "description": "Clip 1999 Arcane Incident Department raw videos into segments per per-episode manifests; extract frame screenshots per frames specs",
+  "version": "0.3.0",
+  "description": "Batch media tool: clip raw videos into per-unit segments per manifests and extract frame screenshots per frames specs, over the three-stage media/input-work-output layout (ADR-0009)",
   "private": true,
   "type": "module",
   "scripts": {

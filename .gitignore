@@ -9,20 +9,15 @@ coverage/
 !.env.example
 
 # generated media (never commit large outputs)
-# contents are ignored, but the per-episode dirs are re-included so
-# spec/recipe files (manifest.json / frames.json) stay versioned
-media/exports/*
-!media/exports/*/
-media/exports/*/*.mp4
-media/screenshots/*
-!media/screenshots/*/
-media/screenshots/*/*.jpg
-media/screenshots/*/*.png
-media/screenshots/*/*.webp
+# three-stage layout (ADR-0009): input/ = raw sources, work/ = specs (versioned),
+# output/ = products (ignored). Spec files are the only thing under work/ that
+# goes to git; the product patterns below are just safety nets for stray files.
+media/output/
+media/work/**/*.{mp4,jpg,png,webp}
 media/temp/
-media/clips/
-media/processed/
 
-# source videos stay local (650MB+ binaries never enter git history)
-media/raw/**/*.mp4
-media/raw/audios/*
+# input: raw media stays local; only per-project README anchors are versioned
+media/input/*
+!media/input/*/
+media/input/*/videos/*
+media/input/*/audios/*
