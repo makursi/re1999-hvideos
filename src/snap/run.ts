@@ -1,29 +1,28 @@
-import { Command } from 'commander'
 import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import type { CAC } from 'cac'
 import { config } from '../common/config.js'
-import { collectUnits, defaultProductDir, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Unit } from '../common/run-common.js'
+import { asString, collectUnits, defaultProductDir, dispatchCacAction, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Unit } from '../common/run-common.js'
 import { loadFrameSpec, resolveFrameEntry, type FrameFormat, type FramesSpec } from './framespec.js'
 import { buildSequenceArgs, probeDuration, probeImageStats, runFfmpeg } from '../common/ffmpeg.js'
 import { isSolidFrame } from './solid.js'
 import { firstValidFrame, planExtraction, PROJECT_FPS, SHIFT_MAX_FRAMES, WindowEndError, type ShiftResult } from './shift.js'
 import { formatSeconds } from '../common/time.js'
 
-interface PlanEntry {
-  id: string
-  at: number
-  format: FrameFormat
-  source: string
-  output: string
+/**
+ * Raw parsed options as cac hands them to the action (camelCased; values may
+ * be numbers because mri coerces numeric-looking tokens — see toSnapOptions).
+ */
+interface SnapParseOptions {
+  spec?: unknown
+  project?: unknown
+  unit?: unknown
+  dryRun?: unknown
+  strict?: unknown
+  version?: unknown
 }
 
-interface UnitPlan {
-  project: string
-  name: string
-  entries: PlanEntry[]
-}
-
-interface RunOptions {
+interface SnapOptions {
   spec?: string
   project?: string
   unit?: string
@@ -32,38 +31,47 @@ interface RunOptions {
 }
 
 /**
- * Build the `snap` subcommand of the re1999 program (ADR-0006): run/list over
- * per-unit frames specs plus the snap orchestration (plan, probe, extract,
- * auto-shift). Domain stays snap-only (ADR-0004: mechanics live in `common/`,
- * domain models never cross pipelines). Specs live under
- * `<workDir>/<project>/screenshots/<unit>/frames.json` and products default
- * to the mirrored `outputDir` (ADR-0009).
+ * Parse boundary: shape cac/mri options into the typed SnapOptions the
+ * orchestration consumes (ADR-0010). String-valued options are re-stringified
+ * (mri turns `--project 1999` into number 1999), so tests pin the contract
+ * without invoking the pipeline.
  */
-export function buildSnapCommand(): Command {
-  const program = new Command()
-    .name('snap')
-    .description('Extract frame screenshots from raw videos per frames.json (re1999-hvideos)')
-    .version('0.3.0')
+export function toSnapOptions(options: SnapParseOptions): SnapOptions {
+  return {
+    spec: asString(options.spec),
+    project: asString(options.project),
+    unit: asString(options.unit),
+    dryRun: options.dryRun === true,
+    strict: options.strict === true,
+  }
+}
 
-  program
-    .command('run')
-    .description('Extract all screenshots in the per-unit frames specs')
+/**
+ * Register the `snap` command of the re1999 program (ADR-0006, wiring shape
+ * per ADR-0010). cac matches commands against the first argv token only, so
+ * the run/list subcommands of the commander era are dispatched from one
+ * `snap [action]` command here; the user-facing surface (`pnpm snap run
+ * --strict`, `pnpm snap list`) is unchanged (ADR-0010).
+ */
+export function registerSnap(cli: CAC): void {
+  cli.command('snap [action]', 'Extract frame screenshots from raw videos per frames.json (re1999-hvideos)')
     .option('-m, --spec <path>', 'explicit frames spec JSON path (single-file mode)')
     .option('--project <project>', 'only this project (e.g. 1999); default: all projects')
     .option('--unit <unit>', 'only this unit (e.g. ep1); default: all units of the selected projects')
     .option('--dry-run', 'validate and print the plan without extracting')
     .option('--strict', 'error on solid frames instead of auto-shifting to a later valid frame')
-    .action((options: RunOptions) => wrapAction('snap', () => runAllUnits(collectSpecs(options), options)))
-
-  program
-    .command('list')
-    .description('List discovered per-unit frames specs by project')
-    .action(makeListAction('snap', () => config.workDir, 'screenshots', 'frames.json', (baseDir) => `no frames specs found under ${baseDir}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`))
-
-  return program
+    .action((action: string | undefined, options: SnapParseOptions) => dispatchCacAction(cli, action, options, {
+      tag: 'snap',
+      usage: 're1999 snap <run|list> [options]  (see `re1999 snap run --help`)',
+      run: () => {
+        const snapOptions = toSnapOptions(options)
+        return wrapAction('snap', () => runAllUnits(collectSpecs(snapOptions), snapOptions))
+      },
+      list: () => makeListAction('snap', () => config.workDir, 'screenshots', 'frames.json', (baseDir) => `no frames specs found under ${baseDir}`, (path) => `${loadFrameSpec(path).screenshots.length} screenshot(s)`)(),
+    }))
 }
 
-function collectSpecs(options: RunOptions): Unit<FramesSpec>[] {
+function collectSpecs(options: SnapOptions): Unit<FramesSpec>[] {
   return collectUnits(config.workDir, 'screenshots', 'frames.json', loadFrameSpec, {
     explicitPath: options.spec,
     project: options.project,
@@ -132,7 +140,7 @@ async function resolveShot(
   return { kind: 'error', reason: plan.reason }
 }
 
-async function runAllUnits(units: Unit<FramesSpec>[], options: RunOptions): Promise<void> {
+async function runAllUnits(units: Unit<FramesSpec>[], options: SnapOptions): Promise<void> {
   // Probe distinct sources once; validate range against real duration.
   const durations = probeSourceDurations(units.flatMap(u => u.loaded.screenshots), probeDuration, 'screenshot source')
 
@@ -163,6 +171,20 @@ async function runAllUnits(units: Unit<FramesSpec>[], options: RunOptions): Prom
     return
   }
   await runPlan(plan, options.strict, total)
+}
+
+interface PlanEntry {
+  id: string
+  at: number
+  format: FrameFormat
+  source: string
+  output: string
+}
+
+interface UnitPlan {
+  project: string
+  name: string
+  entries: PlanEntry[]
 }
 
 async function runPlanDry(

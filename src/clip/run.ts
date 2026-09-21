@@ -1,11 +1,27 @@
-import { Command } from 'commander'
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import type { CAC } from 'cac'
 import { config } from '../common/config.js'
-import { collectUnits, defaultProductDir, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Unit } from '../common/run-common.js'
+import { asString, collectUnits, defaultProductDir, dispatchCacAction, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Unit } from '../common/run-common.js'
 import { loadManifest, resolveClipTimes, type ClipSpec, type Manifest } from './manifest.js'
 import { buildFfmpegArgs, probeDuration, runFfmpeg } from '../common/ffmpeg.js'
 import { formatSeconds } from '../common/time.js'
+
+/**
+ * Raw parsed options as cac hands them to the action (camelCased; values may
+ * be numbers because mri coerces numeric-looking tokens — see toRunOptions).
+ */
+interface ClipParseOptions {
+  manifest?: unknown
+  project?: unknown
+  unit?: unknown
+  dryRun?: unknown
+  copy?: unknown
+  crf?: unknown
+  preset?: unknown
+  outDir?: unknown
+  version?: unknown
+}
 
 interface RunOptions {
   manifest?: string
@@ -18,39 +34,54 @@ interface RunOptions {
   outDir?: string
 }
 
-/**
- * Build the `clip` subcommand of the re1999 program (ADR-0006): run/list over
- * per-unit manifests plus the clip orchestration (plan, probe, encode) that
- * the CLI wires up. Domain stays clip-only (ADR-0004: mechanics live in
- * `common/`, domain models never cross pipelines). Specs live under
- * `<workDir>/<project>/clips/<unit>/manifest.json` and products default to
- * the mirrored `outputDir` (ADR-0009).
- */
-export function buildClipCommand(): Command {
-  const program = new Command()
-    .name('clip')
-    .description('Clip raw videos according to per-unit manifests (re1999-hvideos)')
-    .version('0.3.0')
+/** Single source for the clip run defaults (shared by the cac option config and toRunOptions). */
+const CLIP_DEFAULTS = { crf: '20', preset: 'fast' } as const
 
-  program
-    .command('run')
-    .description('Run all clips in the per-unit manifests')
+/**
+ * Parse boundary: shape cac/mri options into the typed RunOptions the
+ * orchestration consumes (ADR-0010). String-valued options are re-stringified
+ * (mri turns `--project 1999` into number 1999) and cac's option defaults are
+ * applied here, so tests pin the contract without invoking the pipeline.
+ */
+export function toRunOptions(options: ClipParseOptions): RunOptions {
+  return {
+    manifest: asString(options.manifest),
+    project: asString(options.project),
+    unit: asString(options.unit),
+    dryRun: options.dryRun === true,
+    copy: options.copy === true,
+    crf: asString(options.crf) ?? CLIP_DEFAULTS.crf,
+    preset: asString(options.preset) ?? CLIP_DEFAULTS.preset,
+    outDir: asString(options.outDir),
+  }
+}
+
+/**
+ * Register the `clip` command of the re1999 program (ADR-0006, wiring shape
+ * per ADR-0010). cac matches commands against the first argv token only, so
+ * the run/list subcommands of the commander era are dispatched from one
+ * `clip [action]` command here; the user-facing surface (`pnpm clip run
+ * --dry-run`, `pnpm clip list`) is unchanged (ADR-0010).
+ */
+export function registerClip(cli: CAC): void {
+  cli.command('clip [action]', 'Clip raw videos according to per-unit manifests (re1999-hvideos)')
     .option('-m, --manifest <path>', 'explicit manifest JSON path (single-file mode)')
     .option('--project <project>', 'only this project (e.g. 1999); default: all projects')
     .option('--unit <unit>', 'only this unit (e.g. ep1); default: all units of the selected projects')
     .option('--dry-run', 'validate and print the plan without encoding')
     .option('--copy', 'draft mode: stream copy, cut points snap to keyframes')
-    .option('--crf <n>', 'libx264 CRF for accurate mode', '20')
-    .option('--preset <p>', 'x264 preset for accurate mode', 'fast')
+    .option('--crf <n>', 'libx264 CRF for accurate mode', { default: CLIP_DEFAULTS.crf })
+    .option('--preset <p>', 'x264 preset for accurate mode', { default: CLIP_DEFAULTS.preset })
     .option('-o, --out-dir <path>', 'output directory override (default: work→output mirror of the manifest)')
-    .action((options: RunOptions) => wrapAction('clip', () => runAllUnits(collectManifests(options), options)))
-
-  program
-    .command('list')
-    .description('List discovered per-unit manifests by project')
-    .action(makeListAction('clip', () => config.workDir, 'clips', 'manifest.json', (baseDir) => `no manifests found under ${baseDir}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
-
-  return program
+    .action((action: string | undefined, options: ClipParseOptions) => dispatchCacAction(cli, action, options, {
+      tag: 'clip',
+      usage: 're1999 clip <run|list> [options]  (see `re1999 clip run --help`)',
+      run: () => {
+        const runOptions = toRunOptions(options)
+        return wrapAction('clip', () => runAllUnits(collectManifests(runOptions), runOptions))
+      },
+      list: () => makeListAction('clip', () => config.workDir, 'clips', 'manifest.json', (baseDir) => `no manifests found under ${baseDir}`, (path) => `${loadManifest(path).clips.length} clip(s)`)(),
+    }))
 }
 
 function collectManifests(options: RunOptions): Unit<Manifest>[] {
