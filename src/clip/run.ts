@@ -2,14 +2,15 @@ import { Command } from 'commander'
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { config } from '../common/config.js'
-import { collectEpisodes, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Episode } from '../common/run-common.js'
+import { collectUnits, defaultProductDir, elapsedSeconds, makeListAction, probeSourceDurations, wrapAction, type Unit } from '../common/run-common.js'
 import { loadManifest, resolveClipTimes, type ClipSpec, type Manifest } from './manifest.js'
 import { buildFfmpegArgs, probeDuration, runFfmpeg } from '../common/ffmpeg.js'
 import { formatSeconds } from '../common/time.js'
 
 interface RunOptions {
   manifest?: string
-  ep?: string
+  project?: string
+  unit?: string
   dryRun: boolean
   copy: boolean
   crf: string
@@ -19,67 +20,74 @@ interface RunOptions {
 
 /**
  * Build the `clip` subcommand of the re1999 program (ADR-0006): run/list over
- * per-episode manifests plus the clip orchestration (plan, probe, encode) that
+ * per-unit manifests plus the clip orchestration (plan, probe, encode) that
  * the CLI wires up. Domain stays clip-only (ADR-0004: mechanics live in
- * `common/`, domain models never cross pipelines).
+ * `common/`, domain models never cross pipelines). Specs live under
+ * `<workDir>/<project>/clips/<unit>/manifest.json` and products default to
+ * the mirrored `outputDir` (ADR-0009).
  */
 export function buildClipCommand(): Command {
   const program = new Command()
     .name('clip')
-    .description('Clip raw videos according to per-episode manifests (re1999-hvideos)')
-    .version('0.1.0')
+    .description('Clip raw videos according to per-unit manifests (re1999-hvideos)')
+    .version('0.3.0')
 
   program
     .command('run')
-    .description('Run all clips in the per-episode manifests')
+    .description('Run all clips in the per-unit manifests')
     .option('-m, --manifest <path>', 'explicit manifest JSON path (single-file mode)')
-    .option('--ep <ep>', 'only this episode (e.g. ep1)')
+    .option('--project <project>', 'only this project (e.g. 1999); default: all projects')
+    .option('--unit <unit>', 'only this unit (e.g. ep1); default: all units of the selected projects')
     .option('--dry-run', 'validate and print the plan without encoding')
     .option('--copy', 'draft mode: stream copy, cut points snap to keyframes')
     .option('--crf <n>', 'libx264 CRF for accurate mode', '20')
     .option('--preset <p>', 'x264 preset for accurate mode', 'fast')
-    .option('-o, --out-dir <path>', 'output directory override (default: each manifest dir)')
-    .action((options: RunOptions) => wrapAction('clip', () => runAllEpisodes(collectManifests(options), options)))
+    .option('-o, --out-dir <path>', 'output directory override (default: work→output mirror of the manifest)')
+    .action((options: RunOptions) => wrapAction('clip', () => runAllUnits(collectManifests(options), options)))
 
   program
     .command('list')
-    .description('List discovered per-episode manifests')
-    .action(makeListAction('clip', () => config.exportsDir, 'manifest.json', (baseDir) => `no manifests found under ${baseDir}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
+    .description('List discovered per-unit manifests by project')
+    .action(makeListAction('clip', () => config.workDir, 'clips', 'manifest.json', (baseDir) => `no manifests found under ${baseDir}`, (path) => `${loadManifest(path).clips.length} clip(s)`))
 
   return program
 }
 
-function collectManifests(options: RunOptions): Episode<Manifest>[] {
-  return collectEpisodes(config.exportsDir, 'manifest.json', loadManifest, {
+function collectManifests(options: RunOptions): Unit<Manifest>[] {
+  return collectUnits(config.workDir, 'clips', 'manifest.json', loadManifest, {
     explicitPath: options.manifest,
-    ep: options.ep,
+    project: options.project,
+    unit: options.unit,
     kind: 'manifests',
     singleName: options.manifest ? dirname(options.manifest) : undefined,
   })
 }
 
-async function runAllEpisodes(episodes: Episode<Manifest>[], options: RunOptions): Promise<void> {
+async function runAllUnits(units: Unit<Manifest>[], options: RunOptions): Promise<void> {
   // Probe every distinct source once; validate ranges against real duration.
-  const durations = probeSourceDurations(episodes.flatMap(ep => ep.loaded.clips), probeDuration, 'source')
+  const durations = probeSourceDurations(units.flatMap(u => u.loaded.clips), probeDuration, 'source')
 
   interface PlanEntry { clip: ClipSpec, start: number, duration: number, output: string }
-  const plan = episodes.map(ep => ({
-    name: ep.name,
-    entries: ep.loaded.clips.map((clip) => {
-      const { start, end } = resolveClipTimes(clip)
-      const sourceDuration = durations.get(clip.source)!
-      if (end > sourceDuration)
-        throw new Error(`clip "${clip.id}": out (${formatSeconds(end)}) exceeds source duration (${formatSeconds(sourceDuration)})`)
-      const outDir = options.outDir ?? dirname(ep.specPath)
-      const output = resolve(outDir, `${clip.id}.mp4`)
-      return { clip, start, duration: end - start, output } satisfies PlanEntry
-    }),
-  }))
+  const plan = units.map(unit => {
+    const outDir = options.outDir ?? defaultProductDir(unit.specPath, config.workDir, config.outputDir)
+    return {
+      project: unit.project,
+      name: unit.name,
+      entries: unit.loaded.clips.map((clip) => {
+        const { start, end } = resolveClipTimes(clip)
+        const sourceDuration = durations.get(clip.source)!
+        if (end > sourceDuration)
+          throw new Error(`clip "${clip.id}": out (${formatSeconds(end)}) exceeds source duration (${formatSeconds(sourceDuration)})`)
+        const output = resolve(outDir, `${clip.id}.mp4`)
+        return { clip, start, duration: end - start, output } satisfies PlanEntry
+      }),
+    }
+  })
 
   const total = plan.reduce((sum, p) => sum + p.entries.reduce((s, e) => s + e.duration, 0), 0)
-  console.log(`[clip] plan: ${plan.length} episode(s), ${plan.reduce((s, p) => s + p.entries.length, 0)} clips, ${formatSeconds(total)} total, mode=${options.copy ? 'stream-copy' : `re-encode (crf ${options.crf}, ${options.preset})`}`)
+  console.log(`[clip] plan: ${plan.length} unit(s), ${plan.reduce((s, p) => s + p.entries.length, 0)} clips, ${formatSeconds(total)} total, mode=${options.copy ? 'stream-copy' : `re-encode (crf ${options.crf}, ${options.preset})`}`)
   for (const p of plan) {
-    console.log(`[clip] ep ${p.name}:`)
+    console.log(`[clip] ${p.project}/${p.name}:`)
     for (const e of p.entries)
       console.log(`  ${e.clip.id}: ${formatSeconds(e.start)} -> ${formatSeconds(e.start + e.duration)} (${formatSeconds(e.duration)})  ->  ${e.output}`)
   }

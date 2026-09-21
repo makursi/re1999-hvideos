@@ -17,7 +17,7 @@ loadEnv()
 const program = new Command()
   .name('re1999')
   .description('re1999-hvideos: clip raw videos per manifests, extract screenshots per frames specs')
-  .version('0.1.0')
+  .version('0.3.0')
   .addCommand(buildClipCommand())
   .addCommand(buildSnapCommand())
 

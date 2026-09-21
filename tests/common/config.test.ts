@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { config, loadEnv } from '../../src/common/config.js'
 
-const KEYS = ['RE1999_EXPORTS_DIR', 'RE1999_SCREENSHOTS_DIR', 'RE1999_TEMP_DIR', 'FFMPEG_BIN', 'FFPROBE_BIN'] as const
+const KEYS = ['RE1999_WORK_DIR', 'RE1999_OUTPUT_DIR', 'RE1999_TEMP_DIR', 'FFMPEG_BIN', 'FFPROBE_BIN'] as const
 
 beforeEach(() => {
   for (const key of KEYS)
@@ -16,9 +16,9 @@ afterEach(() => {
 })
 
 describe('defaults', () => {
-  it('falls back to the classic media/ layout when nothing is set', () => {
-    expect(config.exportsDir).toBe('media/exports')
-    expect(config.screenshotsDir).toBe('media/screenshots')
+  it('falls back to the three-stage media/ layout when nothing is set', () => {
+    expect(config.workDir).toBe('media/work')
+    expect(config.outputDir).toBe('media/output')
     expect(config.tempDir).toBe('media/temp')
     expect(config.ffmpegBin).toBe('ffmpeg')
     expect(config.ffprobeBin).toBe('ffprobe')
@@ -27,15 +27,15 @@ describe('defaults', () => {
 
 describe('env override', () => {
   it('shell env wins over the default', () => {
-    vi.stubEnv('RE1999_EXPORTS_DIR', '/data/out')
+    vi.stubEnv('RE1999_WORK_DIR', '/data/work')
     vi.stubEnv('FFMPEG_BIN', '/usr/local/bin/ffmpeg')
-    expect(config.exportsDir).toBe('/data/out')
+    expect(config.workDir).toBe('/data/work')
     expect(config.ffmpegBin).toBe('/usr/local/bin/ffmpeg')
   })
 
   it('throws on an empty value', () => {
-    vi.stubEnv('RE1999_EXPORTS_DIR', '')
-    expect(() => config.exportsDir).toThrow(/must not be empty/)
+    vi.stubEnv('RE1999_OUTPUT_DIR', '')
+    expect(() => config.outputDir).toThrow(/must not be empty/)
   })
 
   it('throws on a whitespace-only value', () => {
@@ -44,8 +44,8 @@ describe('env override', () => {
   })
 
   it('throws on a non-ASCII value', () => {
-    vi.stubEnv('RE1999_EXPORTS_DIR', '媒体/exports')
-    expect(() => config.exportsDir).toThrow(/must be ASCII/)
+    vi.stubEnv('RE1999_WORK_DIR', '媒体/work')
+    expect(() => config.workDir).toThrow(/must be ASCII/)
   })
 
   it('rejects an empty FFMPEG_BIN', () => {
@@ -64,9 +64,9 @@ describe('loadEnv', () => {
     const dir = mkdtempSync(join(tmpdir(), 're1999-env-'))
     const file = join(dir, '.env')
     try {
-      writeFileSync(file, 'RE1999_TEMP_DIR=media/tmp-x\nFFMPEG_BIN=custom-ff\n')
+      writeFileSync(file, 'RE1999_WORK_DIR=media/work-x\nFFMPEG_BIN=custom-ff\n')
       loadEnv(file)
-      expect(config.tempDir).toBe('media/tmp-x')
+      expect(config.workDir).toBe('media/work-x')
       expect(config.ffmpegBin).toBe('custom-ff')
     }
     finally {
@@ -78,10 +78,10 @@ describe('loadEnv', () => {
     const dir = mkdtempSync(join(tmpdir(), 're1999-env-'))
     const file = join(dir, '.env')
     try {
-      vi.stubEnv('RE1999_TEMP_DIR', 'shell-wins')
-      writeFileSync(file, 'RE1999_TEMP_DIR=file-loses\n')
+      vi.stubEnv('RE1999_WORK_DIR', 'shell-wins')
+      writeFileSync(file, 'RE1999_WORK_DIR=file-loses\n')
       loadEnv(file)
-      expect(config.tempDir).toBe('shell-wins')
+      expect(config.workDir).toBe('shell-wins')
     }
     finally {
       rmSync(dir, { recursive: true, force: true })
@@ -92,10 +92,10 @@ describe('loadEnv', () => {
     const dir = mkdtempSync(join(tmpdir(), 're1999-env-'))
     const file = join(dir, '.env')
     try {
-      vi.stubEnv('RE1999_TEMP_DIR', '')
-      writeFileSync(file, 'RE1999_TEMP_DIR=file-value\n')
+      vi.stubEnv('RE1999_OUTPUT_DIR', '')
+      writeFileSync(file, 'RE1999_OUTPUT_DIR=file-value\n')
       loadEnv(file)
-      expect(() => config.tempDir).toThrow(/must not be empty/)
+      expect(() => config.outputDir).toThrow(/must not be empty/)
     }
     finally {
       rmSync(dir, { recursive: true, force: true })
