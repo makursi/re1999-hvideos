@@ -6,6 +6,22 @@
 
 ### 新增（Added）
 
+- **音频切分管线 `pnpm split`（第三类 类 `split`）**：把一段纯音频源按 `tracklist.json` 的时间戳切成若干首 `.m4a` 歌曲（stream copy `-c:a copy -vn`，不重编码）：
+  - 规格 `media/work/<项目>/split/<单元>/tracklist.json`，结构 `{ source, tracks: [{ start, title }] }`；`start` 是每首歌开始时刻，`end` 由下一首 `start` 推导、末首 `end` = 音源实际时长（`probeDuration` 读 `format.duration`），**不落盘**；
+  - 产物文件名 `NN - Title.m4a`（两位补零序号，宽度随歌数），`title` 校验 ASCII `[A-Za-z0-9._ -]` 外字符报错、不自动 sanitize；
+  - `split run` / `split list` 与 clip/snap 同构（cac multicall），复用 `run-common`（collectUnits / probeSourceDurations / defaultProductDir / dispatchCacAction / wrapAction / makeListAction）；`--project` / `--unit` / `-t <path>`（单文件）/ `--dry-run`（纯预览不写）/ `--strict`（末首尾差超阈值时报错而非告警）；
+  - 导出记录清单 `tracklist.csv`（`index,title,start,end,duration,output_file`），逐产物 ffprobe 时长核验由既有 `verify` 思路承接；
+  - 领域真值 vs 配置分层：末首尾差告警阈值 60s、seek 摆放（`-ss` 在 `-i` 前）为领域常量；配置旋钮全走 `config.ts`，`source` 路径是 spec 数据。
+- 首个真实项目 `mix`：输入 `media/input/mix/audios/old-school-90s.mkv`（ASCII 规范化，源码 146MB、纯 AAC、无视频流），规格 `media/work/mix/split/old-school-90s/tracklist.json` 共 38 首歌（与 `media/input/mix/tracklist.md` 逐字逐时间戳一致）。
+
+### 文档（Docs）
+
+- `CONTEXT.md` 新增术语：切歌清单（tracklist）、音源（audio source）、歌曲（song/track）、切分（split）；「输入/操作/输出目录」词条的 类 枚举补 `split`。
+
+### 变更（Changed）
+
+- `src/common/discovery.ts` 的 `SpecKind` 联合类型补 `split`；`src/common/ffmpeg.ts` 新增 `buildAudioCopyArgs`；测试 90 → 106 条全绿（typecheck / oxlint 通过）。
+
 - **三段式媒体目录与项目级泛化（ADR-0009）**：定位从"1999 专用"放宽为**通用媒体工具**；`media` 重构为 输入(`media/input/<项目>`) → 操作(`media/work/<项目>/<类(clips|screenshots)>/<单元>`) → 输出(`media/output/<项目>/<类>/<单元>`) 三段式；CLI 新增可选 `--project`（缺省全量）、`--ep` 更名 `--unit`，`list` 按 项目→单元 两级展示；产物默认 = work→output 镜像（显式 `dir`/`-o` 仍优先）；配置旋钮 `RE1999_EXPORTS_DIR`/`RE1999_SCREENSHOTS_DIR` → `RE1999_WORK_DIR`/`RE1999_OUTPUT_DIR`；1999 现有素材零删除零转码迁入 `media/input/1999/`（`videos/` + `audios/` + README 映射），规格 git mv 至 `media/work/1999/` 并改写 `source` 为 `media/input/1999/videos/...`；仓库名/CLI 程序名 `re1999` 不变。
 
 ### 变更（Changed）

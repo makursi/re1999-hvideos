@@ -4,22 +4,22 @@ import type { CAC } from 'cac'
 import { discoverSpecs, type SpecKind } from './discovery.js'
 
 /**
- * Shared orchestration glue for the clip and snap CLIs: discovering and
- * selecting per-project/per-unit specs, probing source durations,
+ * Shared orchestration glue for the clip, snap and split CLIs: discovering
+ * and selecting per-project/per-unit specs, probing source durations,
  * list/error/elapsed reporting, the work→output product mirror (ADR-0009),
  * and the read → parse → wrap spec loader.
  *
- * ADR-0004 decouples snap from clip at the DOMAIN level: the two pipelines
- * keep separate specs (manifest.json vs frames.json), separate products
- * (mp4 vs images) and separate semantics (range in/out vs instant at). This
+ * ADR-0004 decouples the pipelines at the DOMAIN level: each keeps its own
+ * specs (manifest.json / frames.json / tracklist.json), products (mp4 /
+ * images / m4a) and semantics (range in/out / instant at / track start). This
  * module shares only the mechanics around those models — never the models
- * themselves. Any help that starts touching "clips" or "screenshots" belongs
- * in the caller.
+ * themselves. Any help that starts touching "clips" / "screenshots" /
+ * "split" belongs in the caller.
  *
  * ADR-0009 three-stage layout: specs live under
- * `<workDir>/<project>/<clips|screenshots>/<unit>/<spec>` and products
- * default to `<outputDir>/<project>/<clips|screenshots>/<unit>/`, mirroring
- * the spec path across the work → output roots.
+ * `<workDir>/<project>/<clips|screenshots|split>/<unit>/<spec>` and products
+ * default to `<outputDir>/<project>/<clips|screenshots|split>/<unit>/`,
+ * mirroring the spec path across the work → output roots.
  */
 
 /**

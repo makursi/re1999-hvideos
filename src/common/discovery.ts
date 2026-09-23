@@ -3,10 +3,11 @@ import { join } from 'node:path'
 
 /**
  * The pipeline "kind" subdirectory under each project in the work root
- * (ADR-0009): `clips` for manifest specs, `screenshots` for frames specs.
- * This is the 类 concept from CONTEXT.md — a union, not a free-form string.
+ * (ADR-0009): `clips` for manifest specs, `screenshots` for frames specs,
+ * `split` for audio tracklist specs. This is the 类 concept from CONTEXT.md —
+ * a union, not a free-form string.
  */
-export type SpecKind = 'clips' | 'screenshots'
+export type SpecKind = 'clips' | 'screenshots' | 'split'
 
 /**
  * One discovered spec file: its project, unit name, and absolute-in-repo path.

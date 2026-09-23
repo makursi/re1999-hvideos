@@ -53,6 +53,34 @@ export function buildFfmpegArgs(
   ]
 }
 
+/**
+ * Build the ffmpeg args for the `split` pipeline: cut `duration` seconds of
+ * audio starting at `start` by stream-copying the audio codec (`-c:a copy`)
+ * into an .m4a container. `-ss` sits BEFORE `-i` (input seek) — stream copy
+ * can only cut on container/frame boundaries, so input-seek snaps to the
+ * nearest AAC frame, a millisecond-level approximation that is perceptually
+ * exact for music and never re-encodes. This deliberately differs from the
+ * frame-exact screenshot path (buildSequenceArgs, `-ss` AFTER `-i`, ADR-0004):
+ * audio stream-copying has no frame-exact re-encode requirement.
+ */
+export function buildAudioCopyArgs(
+  source: string,
+  start: number,
+  duration: number,
+  output: string,
+): string[] {
+  return [
+    '-y',
+    '-loglevel', 'error',
+    '-ss', String(start),
+    '-i', source,
+    '-t', String(duration),
+    '-vn',
+    '-c:a', 'copy',
+    output,
+  ]
+}
+
 export function runFfmpeg(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(config.ffmpegBin, args, { stdio: ['ignore', 'inherit', 'inherit'] })

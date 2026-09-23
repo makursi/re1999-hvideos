@@ -39,12 +39,24 @@ _Avoid_: 偏移、补帧、校正
 描述**一个单元**截图导出内容的唯一事实来源（JSON 文件）。位于 `media/work/<项目>/screenshots/<单元>/frames.json`，是该单元截图处理的唯一输入。
 _Avoid_: 截图清单、截图任务
 
+**切歌清单（tracklist）**:
+描述**一个单元**音频切分内容的唯一事实来源（JSON 文件）。位于 `media/work/<项目>/split/<单元>/tracklist.json`，是该单元 `split` 处理的唯一输入。描述一个**音源**的完整切歌序列。
+
+**音源（audio source）**:
+含音轨的媒体文件，`split` 管线的只读输入素材（本阶段只支持纯音频、无视频流）。每个 tracklist 恰好对应一个音源。
+
+**歌曲（song/track）**:
+tracklist 里的一条：一个 `start`（开始时间戳）+ `title`（歌名）。`end` 由相邻歌曲 `start` 推导（末首 `end` = 音源实际时长），不落盘。
+
+**切分（split）**:
+把音源按 tracklist 的 `start` 边界切分成若干 `.m4a` 歌曲（stream copy，不重编码）的管线。与"片段"（视频时间范围）和"截图"（单帧图像）是不同的第三类处理。
+
 **导出产物**:
 一个片段或一条截图被处理后写出的最终文件，默认落在 `media/output/<项目>/clips/<单元>`（剪辑产物，视频）或 `media/output/<项目>/screenshots/<单元>`（截图产物，图像）。当前阶段剪辑产物与片段一一对应、截图产物与其来源时间点一一对应。
 _Avoid_: 输出、成品、渲染结果
 
 **输入/操作/输出目录（input/work/output）**:
-三段式布局的三层：`media/input` 存放只读原始素材（按项目分、不入 git）；`media/work` 存放规格（版本化、按 项目/类(clips|screenshots)/单元 分）；`media/output` 存放产物（不入 git，默认路径 = work 中对应规格目录的"work→output 镜像"）。`media/temp` 是临时工作区，不属于这三层任何一层。
+三段式布局的三层：`media/input` 存放只读原始素材（按项目分、不入 git）；`media/work` 存放规格（版本化、按 项目/类(clips|screenshots|split)/单元 分）；`media/output` 存放产物（不入 git，默认路径 = work 中对应规格目录的"work→output 镜像"）。`media/temp` 是临时工作区，不属于这三层任何一层。
 _Avoid_: 素材目录、产物目录、临时目录（temp 不是输出层）
 
 **配置项（config knob）**:
