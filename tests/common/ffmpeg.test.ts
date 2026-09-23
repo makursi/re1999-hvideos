@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSequenceArgs, parseSignalStats } from '../../src/common/ffmpeg.js'
+import { buildAudioCopyArgs, buildSequenceArgs, parseSignalStats } from '../../src/common/ffmpeg.js'
 
 describe('parseSignalStats', () => {
   it('parses YAVG/YMIN/YMAX from a real probe emission', () => {
@@ -53,6 +53,20 @@ describe('buildSequenceArgs', () => {
   it('count=1 reproduces the ADR-0004 single-frame extraction (output seek, frame-exact)', () => {
     expect(buildSequenceArgs('src.mp4', 80, 1, 'jpg', 'out.jpg')).toEqual([
       '-y', '-loglevel', 'error', '-i', 'src.mp4', '-ss', '80', '-frames:v', '1', '-q:v', '2', 'out.jpg',
+    ])
+  })
+})
+
+describe('buildAudioCopyArgs', () => {
+  it('stream-copies audio with -ss before -i, -vn, and -c:a copy', () => {
+    expect(buildAudioCopyArgs('src.m4a', 171, 150, 'out/01 - Song.m4a')).toEqual([
+      '-y', '-loglevel', 'error',
+      '-ss', '171',
+      '-i', 'src.m4a',
+      '-t', '150',
+      '-vn',
+      '-c:a', 'copy',
+      'out/01 - Song.m4a',
     ])
   })
 })

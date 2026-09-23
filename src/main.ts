@@ -5,11 +5,12 @@ import { createProgram } from './program.js'
  * Single CLI entry for re1999-hvideos (ADR-0006; CLI framework now cac per
  * ADR-0010).
  *
- * The clip and snap pipelines stay domain-decoupled (ADR-0004) but share one
- * argv surface: `clip` (manifest-driven video clipping) and `snap`
- * (frames-spec screenshots) are commands of this program. `pnpm clip` /
- * `pnpm snap` in package.json forward here, so routine operations keep their
- * muscle memory; `pnpm re1999` exposes the combined program.
+ * The clip, snap and split pipelines stay domain-decoupled (ADR-0004) but share
+ * one argv surface: `clip` (manifest-driven video clipping), `snap`
+ * (frames-spec screenshots) and `split` (tracklist-driven audio chunking) are
+ * commands of this program. `pnpm clip` / `pnpm snap` / `pnpm split` in
+ * package.json forward here, so routine operations keep their muscle memory;
+ * `pnpm re1999` exposes the combined program.
  *
  * cac 7 (ADR-0010) leaves error handling to the host: unknown options, missing
  * values and unused args throw CACError out of parse() (caught below), unknown

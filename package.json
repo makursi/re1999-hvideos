@@ -8,6 +8,7 @@
     "re1999": "tsx src/main.ts",
     "clip": "tsx src/main.ts clip",
     "snap": "tsx src/main.ts snap",
+    "split": "tsx src/main.ts split",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createProgram } from '../src/program.js'
 import { toRunOptions } from '../src/clip/run.js'
 import { toSnapOptions } from '../src/snap/run.js'
+import { toSplitOptions } from '../src/split/run.js'
 import { dispatchCacAction } from '../src/common/run-common.js'
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }
@@ -38,6 +39,13 @@ describe('parse layer (cac, ADR-0010)', () => {
     expect(parse(['clip', 'list']).parsed.args).toEqual(['list'])
     expect(parse(['snap', 'run', '--strict']).parsed.args).toEqual(['run'])
     expect(parse(['snap', 'run', '--strict']).parsed.options.strict).toBe(true)
+  })
+
+  it('maps split run flags to camelCased options', () => {
+    const { parsed } = parse(['split', 'run', '--dry-run', '--strict', '--project', 'mix', '--unit', 'old-school-90s', '-t', 'media/work/mix/split/x/tracklist.json'])
+    expect(parsed.args).toEqual(['run'])
+    expect(parsed.options).toMatchObject({ dryRun: true, strict: true, tracklist: 'media/work/mix/split/x/tracklist.json' })
+    expect(parsed.options.project).toBe('mix')
   })
 
   it('recognizes --help and --version as flags', () => {
@@ -82,6 +90,12 @@ describe('dispatch coercion (mri numbers → strings, ADR-0010)', () => {
     expect(toSnapOptions({ spec: undefined, project: 1999, strict: true }))
       .toMatchObject({ project: '1999', strict: true, dryRun: false })
     expect(toSnapOptions({})).toMatchObject({ dryRun: false, strict: false })
+  })
+
+  it('stringifies numeric-looking values at the parse boundary for split', () => {
+    expect(toSplitOptions({ project: 1, unit: 'x', dryRun: true, strict: true }))
+      .toMatchObject({ project: '1', unit: 'x', dryRun: true, strict: true })
+    expect(toSplitOptions({})).toMatchObject({ dryRun: false, strict: false })
   })
 })
 

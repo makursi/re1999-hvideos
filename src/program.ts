@@ -2,6 +2,7 @@ import { createRequire } from 'node:module'
 import { cac, type CAC } from 'cac'
 import { registerClip } from './clip/run.js'
 import { registerSnap } from './snap/run.js'
+import { registerSplit } from './split/run.js'
 
 const { version } = createRequire(import.meta.url)('../package.json') as { version: string }
 
@@ -20,6 +21,7 @@ export function createProgram(): CAC {
   cli.version(version)
   registerClip(cli)
   registerSnap(cli)
+  registerSplit(cli)
   cli.help()
   return cli
 }
