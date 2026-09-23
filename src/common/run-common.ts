@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { dirname } from 'node:path'
+import type { CAC } from 'cac'
 import { discoverSpecs, type SpecKind } from './discovery.js'
 
 /**
@@ -140,7 +141,12 @@ export function probeSourceDurations(
   return durations
 }
 
-/** Wrap a commander action so any error is reported with the CLI tag and a non-zero exit. */
+/**
+ * Wrap a cac action handler so any error is reported with the CLI tag and a
+ * non-zero exit. Errors thrown by parse-time validation (unknown option,
+ * missing value, unused args) are not wrapped here — they surface through
+ * main.ts's parse() catch (ADR-0010).
+ */
 export async function wrapAction(tag: string, run: () => Promise<void>): Promise<void> {
   try {
     await run()
@@ -152,10 +158,55 @@ export async function wrapAction(tag: string, run: () => Promise<void>): Promise
 }
 
 /**
- * Commander action that lists discovered per-unit specs grouped by project,
+ * Handlers for the shared `[action]` dispatch (ADR-0010): cac matches
+ * commands against the first argv token only, so clip and snap register one
+ * flat command each (`clip [action]` / `snap [action]`) and dispatch the
+ * run/list actions through this shared skeleton.
+ */
+export interface CacActionHandlers {
+  /** CLI tag used in usage hints and error lines (e.g. 'clip'). */
+  tag: string
+  /** Usage hint printed when the command runs with no action. */
+  usage: string
+  run: () => void | Promise<void>
+  list: () => void
+}
+
+/**
+ * Dispatch `clip [action]` / `snap [action]` (ADR-0010): the global
+ * `--version` flag is a known option everywhere, so a bare `clip run
+ * --version` would otherwise *run the pipeline* — it is intercepted here to
+ * print the version instead. A missing action prints the usage hint, and an
+ * unknown action fails with a non-zero exit code.
+ */
+export function dispatchCacAction(
+  cli: CAC,
+  action: string | undefined,
+  options: { version?: unknown },
+  handlers: CacActionHandlers,
+): void | Promise<void> {
+  if (options.version) {
+    cli.outputVersion()
+    return
+  }
+  if (action == null) {
+    console.log(`[${handlers.tag}] usage: ${handlers.usage}`)
+    return
+  }
+  if (action === 'run')
+    return handlers.run()
+  if (action === 'list')
+    return handlers.list()
+  console.error(`[${handlers.tag}] unknown action: ${action}`)
+  process.exitCode = 1
+}
+
+/**
+ * cac action handler that lists discovered per-unit specs grouped by project,
  * with their counts. `getBaseDir` is read lazily inside the action
- * (ADR-0007), so an invalid config value surfaces through commander's error
- * handling instead of crashing even `--help` at command-build time.
+ * (ADR-0007), so an invalid config value surfaces through the CLI error
+ * handling (wrapAction / main.ts catch) instead of crashing even `--help` at
+ * command-build time.
  */
 export function makeListAction(
   tag: string,
@@ -187,6 +238,18 @@ export function makeListAction(
       }
     }
   }
+}
+
+/**
+ * Re-stringify an option value at the cac parse boundary (ADR-0010): cac's
+ * mri coerces numeric-looking values (`--project 1999` → 1999), which would
+ * break string comparisons against spec/project names. `null`/`undefined`
+ * stay undefined so optional options keep their "absent" meaning.
+ */
+export function asString(value: unknown): string | undefined {
+  if (value == null)
+    return undefined
+  return String(value)
 }
 
 /** Format seconds elapsed since startedAt for the "finished in Xs" report. */

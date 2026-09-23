@@ -1,6 +1,6 @@
 # re1999-hvideos 项目共用参考
 
-两条管线技能（`re1999-video-clipping` 剪辑、`re1999-snap` 截图）共用的项目级事实、规则与踩坑。**领域模型的唯一权威是 `../../../CONTEXT.md`，本文不替代**；技术决策的唯一权威是 `../../../docs/adr/`（0001~0009），改动任何行为前先读对应档案。
+两条管线技能（`re1999-video-clipping` 剪辑、`re1999-snap` 截图）共用的项目级事实、规则与踩坑。**领域模型的唯一权威是 `../../../CONTEXT.md`，本文不替代**；技术决策的唯一权威是 `../../../docs/adr/`（0001~0010），改动任何行为前先读对应档案。
 
 ## 项目是什么
 
@@ -9,12 +9,12 @@
 ## 目录布局
 
 ```
-src/ + tests/             # 单一入口 src/main.ts（程序 re1999，clip/snap 子命令，ADR-0006，loadEnv 最先执行）+ src/clip|snap/（各流水线命令构建 buildClipCommand/buildSnapCommand 与编排）+ src/common/（run-common 共享编排：发现/项目=单元收集/镜像/探测/list/错误处理/loadSpec + config.ts 环境配置面，仅机制不涉领域模型，ADR-0004/0007/0009）+ vitest 用例（79 条全绿）
+src/ + tests/             # 单一入口 src/main.ts（程序 re1999，clip/snap 命令，ADR-0006/0010，loadEnv 最先执行）+ src/program.ts（createProgram 工厂：cac 接线 + 全局 --version/--help，ADR-0010）+ src/clip|snap/（各流水线注册 registerClip/registerSnap——cac 只匹配 argv 首词，`clip [action]`/`snap [action]` 内部分发 run/list，ADR-0010——与编排）+ src/common/（run-common 共享机制：发现/项目=单元收集/镜像/探测/list/分发 dispatchCacAction/错误处理/loadSpec + config.ts 环境配置面，仅机制不涉领域模型，ADR-0004/0007/0009/0010）+ vitest 用例（含 tests/cli.test.ts argv 映射回归；90 条全绿）
 media/input/<项目>/       # 输入层：源素材只读（videos/、audios/ 预留混音），不入 git；<项目>/README.md 锚定 + 中文映射
 media/work/<项目>/        # 操作层：版本化规格——clips/<单元>/manifest.json 与 screenshots/<单元>/frames.json
 media/output/<项目>/      # 输出层：产物（clips/<单元>/*.mp4、screenshots/<单元>/*.jpg|png|webp），不入 git；路径 = work 镜像
 media/temp/               # snap 探针临时目录（可配，不入 git）
-docs/adr/ 0001~0009       # 全部技术决策档案（0003 已被 0009 取代）
+docs/adr/ 0001~0010       # 全部技术决策档案（0003 被 0009 取代；0006 的 commander 陈述被 0010 取代）
 CONTEXT.md                # 领域模型唯一权威
 CHANGELOG.md / README.md  # 变更记录 / 使用说明
 .agents/skills/           # re1999-video-clipping/（剪辑 + scripts/verify-exports.mjs）、re1999-snap/（截图）、本文件

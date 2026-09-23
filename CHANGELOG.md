@@ -12,6 +12,7 @@
 
 - 领域模型：术语「集/每集」→「单元（unit）」；规则"产物与规格同目录"（ADR-0003）→"规格与产物分层（work→output 镜像）"（被 ADR-0009 取代）。
 - discovery 升级为项目级双层扫描 `<work>/<项目>/<类>/<单元>/<规格>`；`verify-exports.mjs` 适配新布局（扫描 `media/work`、核验 `media/output` 镜像产物）。
+- **CLI 框架 commander → cac（ADR-0010）**：运行时依赖 `commander ^15` 替换为 `cac ^7.0.0`（零依赖、更轻，vite/vitest 系 CLI 同款）；`build*Command`（返回 Command）改为 `registerClip` / `registerSnap`（直接注册 cac 实例），run/list 子命令并入 `clip [action]` / `snap [action]` 内部分发——cac 只匹配 argv 首词、多词命令永不命中，用户侧 `pnpm clip run --dry-run` / `pnpm snap list` 等用法不变；新增 `src/program.ts` 工厂（`createProgram()`，`--version` 单一来源 = package.json）；解析边界统一字符串化（cac 的 mri 把 `--project 1999` 强转 number，`type: [String]` 转换有缺陷故不用）；错误兜底移至入口（未知命令 / 未知选项 / 缺值 / 多余参数均非零退出，`clip run --version` 守卫为只输出版本不再误跑管线）；帮助文本换为 cac 原生格式；新增 `tests/cli.test.ts`（11 条：argv → 选项映射 + 分发层回归）；锁文件以 pnpm 11.27 重写（cac 入、commander 出）。
 - 测试 72 → 79 条全绿（typecheck / oxlint 通过）；`package.json` 版本对齐 0.3.0。
 
 ### 文档（Docs）
