@@ -7,7 +7,7 @@
 - **Domain model** — unique authority for all terms (项目/单元/片段/截图/纯色帧/纠偏/导出产物…): `CONTEXT.md`. Load before discussing or changing domain semantics.
 - **Technical decisions** — unique authority for pipeline behavior: `docs/adr/0001~0010` (re-encode-first clipping, ts7+oxlint, three-stage media layout + project-level generalization, frame-exact screenshots, solid-frame auto-shift, env-driven config surface, commit gate, cac CLI framework). ADR-0003 is superseded by ADR-0009; ADR-0006's commander statement is superseded by ADR-0010. Read the relevant ADR **before** changing clip/snap/split behavior.
 - **Project reference & pitfalls** — `.agents/skills/re1999-common/PROJECT.md`: material facts (1080p25, keyframe gap 4–7s, no audio tracks), toolchain gotchas (Chinese-path mojibake, TS7 strict inference, pnpm `allowBuilds` map syntax, git large-file traps). Reached through the pipeline skills; not duplicated here.
-- **Pipeline workflows** — `.agents/skills/re1999-video-clipping/SKILL.md` (clip: manifest → mp4 + `verify-exports.mjs`) and `.agents/skills/re1999-snap/SKILL.md` (snap: frames.json → images + auto-shift). Load when writing/editing specs, exporting, or verifying products.
+- **Pipeline workflows** — `.agents/skills/re1999-video-clipping/SKILL.md` (clip: manifest → mp4 + `verify-exports.mjs`), `.agents/skills/re1999-snap/SKILL.md` (snap: frames.json → images + auto-shift), and `.agents/skills/re1999-audio-split/SKILL.md` (split: tracklist.json → m4a songs + `verify-splits.mjs`). Load when writing/editing specs, exporting, or verifying products.
 
 ## Guardrail rules (every task)
 

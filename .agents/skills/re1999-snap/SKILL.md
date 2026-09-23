@@ -5,7 +5,7 @@ description: re1999-hvideos 帧截图管线：按项目/单元的 frames.json �
 
 # 帧截图管线（pnpm snap）
 
-本项目（re1999-hvideos，`apps/re1999-hvideos`）的**帧截图**技能，只在本仓库使用：按项目/单元的截图规格 `frames.json` 从输入素材按绝对时间戳提取单帧图片。视频剪辑/导出是另一条管线，见 `../re1999-video-clipping/SKILL.md`。
+本项目（re1999-hvideos，`apps/re1999-hvideos`）的**帧截图**技能，只在本仓库使用：按项目/单元的截图规格 `frames.json` 从输入素材按绝对时间戳提取单帧图片。视频剪辑/导出是另一条管线，见 `../re1999-video-clipping/SKILL.md`；音频切分见 `../re1999-audio-split/SKILL.md`。
 
 ## 领域模型
 
