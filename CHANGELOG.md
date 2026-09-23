@@ -17,6 +17,8 @@
 ### 文档（Docs）
 
 - `CONTEXT.md` 新增术语：切歌清单（tracklist）、音源（audio source）、歌曲（song/track）、切分（split）；「输入/操作/输出目录」词条的 类 枚举补 `split`。
+- 新增管线技能 `.agents/skills/re1999-audio-split/SKILL.md`（领域模型 / 规格布局 / 执行流程 / 命令速查 / 关键决策 / 易踩坑）与核验脚本 `scripts/verify-splits.mjs`（扫描 `tracklist.json`、逐产物 ffprobe 时长 ±0.5s、codec=aac、数量对账；mix 项目 38 首实测 `=== ALL PASS ===`）。
+- 同步 `re1999-common/PROJECT.md`（两条→三条管线、目录布局、测试数 90→106、`audios/` 说明）与两条旧技能、`AGENTS.md` 的互指/指针补 `re1999-audio-split`。
 
 ### 变更（Changed）
 

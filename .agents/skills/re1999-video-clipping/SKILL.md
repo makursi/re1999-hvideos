@@ -5,7 +5,7 @@ description: re1999-hvideos 视频剪辑管线：按项目/单元的 manifest.js
 
 # 视频剪辑管线（pnpm clip）
 
-本项目（re1999-hvideos，`apps/re1999-hvideos`）的**视频批量剪辑**技能，只在本仓库使用。把输入素材按项目/单元的剪辑清单裁剪导出为片段 mp4。截图/帧提取是另一条管线，见 `../re1999-snap/SKILL.md`。
+本项目（re1999-hvideos，`apps/re1999-hvideos`）的**视频批量剪辑**技能，只在本仓库使用。把输入素材按项目/单元的剪辑清单裁剪导出为片段 mp4。截图/帧提取是另一条管线，见 `../re1999-snap/SKILL.md`；音频切分见 `../re1999-audio-split/SKILL.md`。
 
 ## 领域模型
 

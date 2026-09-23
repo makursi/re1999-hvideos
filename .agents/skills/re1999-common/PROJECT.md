@@ -1,23 +1,23 @@
 # re1999-hvideos 项目共用参考
 
-两条管线技能（`re1999-video-clipping` 剪辑、`re1999-snap` 截图）共用的项目级事实、规则与踩坑。**领域模型的唯一权威是 `../../../CONTEXT.md`，本文不替代**；技术决策的唯一权威是 `../../../docs/adr/`（0001~0010），改动任何行为前先读对应档案。
+三条管线技能（`re1999-video-clipping` 剪辑、`re1999-snap` 截图、`re1999-audio-split` 音频切分）共用的项目级事实、规则与踩坑。**领域模型的唯一权威是 `../../../CONTEXT.md`，本文不替代**；技术决策的唯一权威是 `../../../docs/adr/`（0001~0010），改动任何行为前先读对应档案。
 
 ## 项目是什么
 
-把《重返未来：1999》官方短片（以及任意其他素材项目）按清单批量裁剪为片段 mp4（剪辑管线）、并按时间戳提取截图帧（截图管线）的通用媒体 CLI 工具项目。素材经过"输入 → 操作 → 输出"三段式布局（ADR-0009）。
+把《重返未来：1999》官方短片（以及任意其他素材项目）按清单批量裁剪为片段 mp4（剪辑管线）、按时间戳提取截图帧（截图管线）、按 tracklist 把音频源切成多首歌曲（音频切分管线）的通用媒体 CLI 工具项目。素材经过"输入 → 操作 → 输出"三段式布局（ADR-0009）。
 
 ## 目录布局
 
 ```
-src/ + tests/             # 单一入口 src/main.ts（程序 re1999，clip/snap 命令，ADR-0006/0010，loadEnv 最先执行）+ src/program.ts（createProgram 工厂：cac 接线 + 全局 --version/--help，ADR-0010）+ src/clip|snap/（各流水线注册 registerClip/registerSnap——cac 只匹配 argv 首词，`clip [action]`/`snap [action]` 内部分发 run/list，ADR-0010——与编排）+ src/common/（run-common 共享机制：发现/项目=单元收集/镜像/探测/list/分发 dispatchCacAction/错误处理/loadSpec + config.ts 环境配置面，仅机制不涉领域模型，ADR-0004/0007/0009/0010）+ vitest 用例（含 tests/cli.test.ts argv 映射回归；90 条全绿）
-media/input/<项目>/       # 输入层：源素材只读（videos/、audios/ 预留混音），不入 git；<项目>/README.md 锚定 + 中文映射
-media/work/<项目>/        # 操作层：版本化规格——clips/<单元>/manifest.json 与 screenshots/<单元>/frames.json
-media/output/<项目>/      # 输出层：产物（clips/<单元>/*.mp4、screenshots/<单元>/*.jpg|png|webp），不入 git；路径 = work 镜像
+src/ + tests/             # 单一入口 src/main.ts（程序 re1999，clip/snap/split 命令，ADR-0006/0010，loadEnv 最先执行）+ src/program.ts（createProgram 工厂：cac 接线 + 全局 --version/--help，ADR-0010）+ src/clip|snap|split/（各流水线注册 registerClip/registerSnap/registerSplit——cac 只匹配 argv 首词，`clip [action]`/`snap [action]`/`split [action]` 内部分发 run/list，ADR-0010——与编排）+ src/common/（run-common 共享机制：发现/项目=单元收集/镜像/探测/list/分发 dispatchCacAction/错误处理/loadSpec + config.ts 环境配置面，仅机制不涉领域模型，ADR-0004/0007/0009/0010）+ vitest 用例（含 tests/cli.test.ts argv 映射回归；106 条全绿）
+media/input/<项目>/       # 输入层：源素材只读（videos/、audios/ 混音或纯音频源），不入 git；<项目>/README.md 锚定 + 中文映射
+media/work/<项目>/        # 操作层：版本化规格——clips/<单元>/manifest.json、screenshots/<单元>/frames.json、split/<单元>/tracklist.json
+media/output/<项目>/      # 输出层：产物（clips/<单元>/*.mp4、screenshots/<单元>/*.jpg|png|webp、split/<单元>/*.m4a），不入 git；路径 = work 镜像
 media/temp/               # snap 探针临时目录（可配，不入 git）
 docs/adr/ 0001~0010       # 全部技术决策档案（0003 被 0009 取代；0006 的 commander 陈述被 0010 取代）
 CONTEXT.md                # 领域模型唯一权威
 CHANGELOG.md / README.md  # 变更记录 / 使用说明
-.agents/skills/           # re1999-video-clipping/（剪辑 + scripts/verify-exports.mjs）、re1999-snap/（截图）、本文件
+.agents/skills/           # re1999-video-clipping/（剪辑 + scripts/verify-exports.mjs）、re1999-snap/（截图）、re1999-audio-split/（音频切分 + scripts/verify-splits.mjs）、本文件
 ```
 
 ## 核心规则（速记；权威定义见 CONTEXT.md）
@@ -42,7 +42,7 @@ CHANGELOG.md / README.md  # 变更记录 / 使用说明
 
 - commit message 用英文、Conventional Commits（如 `feat: ...` / `docs: ...`），**不用中文**
 - **例行操作（写 spec、导出、截图）直接提交 main**；仅**项目迭代**（`src/`、`tests/`、CLI 行为、文档、ADR、skill 改动）走分支 → push → PR → merge → `git checkout main && git pull`
-- `media` 媒体产物永不提交；`media/work` 下的 `manifest.json` / `frames.json` 是输入，进版本库
+- `media` 媒体产物永不提交；`media/work` 下的 `manifest.json` / `frames.json` / `tracklist.json` 是输入，进版本库
 
 ## 项目级踩坑（工具链/仓库通用，与具体管线无关）
 
