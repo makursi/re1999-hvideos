@@ -12,7 +12,7 @@
   - `split run` / `split list` 与 clip/snap 同构（cac multicall），复用 `run-common`（collectUnits / probeSourceDurations / defaultProductDir / dispatchCacAction / wrapAction / makeListAction）；`--project` / `--unit` / `-t <path>`（单文件）/ `--dry-run`（纯预览不写）/ `--strict`（末首尾差超阈值时报错而非告警）；
   - 导出记录清单 `tracklist.csv`（`index,title,start,end,duration,output_file`），逐产物 ffprobe 时长核验由既有 `verify` 思路承接；
   - 领域真值 vs 配置分层：末首尾差告警阈值 60s、seek 摆放（`-ss` 在 `-i` 前）为领域常量；配置旋钮全走 `config.ts`，`source` 路径是 spec 数据。
-- 首个真实项目 `mix`：输入 `media/input/mix/audios/old-school-90s.mkv`（ASCII 规范化，源码 146MB、纯 AAC、无视频流），规格 `media/work/mix/split/old-school-90s/tracklist.json` 共 38 首歌（与 `media/input/tracklist.md` 逐字逐时间戳一致）。
+- 首个真实项目 `mix`：输入 `media/input/mix/audios/old-school-90s.mkv`（ASCII 规范化，源码 146MB、纯 AAC、无视频流），规格 `media/work/mix/split/old-school-90s/tracklist.json` 共 38 首歌（与 `media/input/mix/tracklist.md` 逐字逐时间戳一致）。
 
 ### 文档（Docs）
 
