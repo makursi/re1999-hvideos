@@ -70,20 +70,20 @@ describe('resolveTrackTimes', () => {
   it('derives each end from the next start and the last end from duration', () => {
     const resolved = resolveTrackTimes(tl, 45)
     expect(resolved).toEqual([
-      { title: 'One', start: 0, end: 10, filename: '1 - One.m4a' },
-      { title: 'Two', start: 10, end: 30, filename: '2 - Two.m4a' },
-      { title: 'Three', start: 30, end: 45, filename: '3 - Three.m4a' },
+      { title: 'One', start: 0, end: 10, filename: 'One.m4a' },
+      { title: 'Two', start: 10, end: 30, filename: 'Two.m4a' },
+      { title: 'Three', start: 30, end: 45, filename: 'Three.m4a' },
     ])
   })
 
-  it('zero-pads filenames to the track count width', () => {
+  it('names files by bare title (no index prefix)', () => {
     const many = {
       source: 'a.m4a',
       tracks: Array.from({ length: 12 }, (_, i) => ({ start: i * 10, title: `T${i}` })),
     }
     const resolved = resolveTrackTimes(many, 200)
-    expect(resolved[0]!.filename).toBe('01 - T0.m4a')
-    expect(resolved[11]!.filename).toBe('12 - T11.m4a')
+    expect(resolved[0]!.filename).toBe('T0.m4a')
+    expect(resolved[11]!.filename).toBe('T11.m4a')
   })
 
   it('throws on non-strictly-increasing starts', () => {
