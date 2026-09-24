@@ -19,8 +19,8 @@ description: re1999-hvideos 音频切分管线：按项目/单元的 tracklist.j
 - 每单元清单 `media/work/<项目>/split/<单元>/tracklist.json`：`{ "source", "tracks": [ { "start", "title" } ] }`
 - `source` = 源素材 ASCII 相对路径（如 `media/input/mix/audios/old-school-90s.mkv`），是**数据不是配置**
 - `start` = 每首歌开始时刻（秒数 / `MM:SS` / `HH:MM:SS[.mmm]`），必须**严格递增**，且末首 `start` < 源时长（CLI 校验）
-- `title` = 歌名，只含 ASCII `[A-Za-z0-9._ -]`（空格/连字符允许，其它字符报错、不自动 sanitize）；产物文件名 = `NN - {title}.m4a`（`NN` 两位补零，宽度随歌数）
-- 产物默认 = `media/output/<项目>/split/<单元>/NN - {title}.m4a`（work→output 镜像）；同一目录生成 `tracklist.csv` 记录（`index,title,start,end,duration,output_file`）
+- `title` = 歌名，只含 ASCII `[A-Za-z0-9._ -]`（空格/连字符允许，其它字符报错、不自动 sanitize）；产物文件名 = `{title}.m4a`（纯歌名，不带序号前缀）
+- 产物默认 = `media/output/<项目>/split/<单元>/{title}.m4a`（work→output 镜像）；同一目录生成 `tracklist.csv` 记录（`index,title,start,end,duration,output_file`，`index` 列保留原始顺序、`output_file` 列为无序号文件名）
 - 扫描根默认 `media/work`（split 类），可用 `RE1999_WORK_DIR` 覆盖（ADR-0007/0009 环境配置面，详见 `../../re1999-common/PROJECT.md`）；CLI 显式参数（`-t`/`--project`/`--unit`）仍优先
 - 项目级规则与全局素材事实见 `../../re1999-common/PROJECT.md`
 

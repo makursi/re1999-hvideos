@@ -85,11 +85,10 @@ export function resolveTrackTimes(tracklist: Tracklist, sourceDuration: number):
   if (starts.length > 0 && starts[starts.length - 1]! >= sourceDuration)
     throw new Error(`last track (${tracklist.tracks[starts.length - 1]!.title}) starts at ${starts[starts.length - 1]}s, not before source duration ${sourceDuration}s`)
 
-  const width = String(tracklist.tracks.length).length
   return tracklist.tracks.map((track, i) => {
     const start = starts[i]!
     const end = i + 1 < tracklist.tracks.length ? starts[i + 1]! : sourceDuration
-    const filename = `${String(i + 1).padStart(width, '0')} - ${track.title}.m4a`
+    const filename = `${track.title}.m4a`
     return { title: track.title, start, end, filename }
   })
 }

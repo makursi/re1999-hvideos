@@ -8,7 +8,7 @@
 
 - **音频切分管线 `pnpm split`（第三类 类 `split`）**：把一段纯音频源按 `tracklist.json` 的时间戳切成若干首 `.m4a` 歌曲（stream copy `-c:a copy -vn`，不重编码）：
   - 规格 `media/work/<项目>/split/<单元>/tracklist.json`，结构 `{ source, tracks: [{ start, title }] }`；`start` 是每首歌开始时刻，`end` 由下一首 `start` 推导、末首 `end` = 音源实际时长（`probeDuration` 读 `format.duration`），**不落盘**；
-  - 产物文件名 `NN - Title.m4a`（两位补零序号，宽度随歌数），`title` 校验 ASCII `[A-Za-z0-9._ -]` 外字符报错、不自动 sanitize；
+  - 产物文件名 `{title}.m4a`（纯歌名、不带序号前缀），`title` 校验 ASCII `[A-Za-z0-9._ -]` 外字符报错、不自动 sanitize；
   - `split run` / `split list` 与 clip/snap 同构（cac multicall），复用 `run-common`（collectUnits / probeSourceDurations / defaultProductDir / dispatchCacAction / wrapAction / makeListAction）；`--project` / `--unit` / `-t <path>`（单文件）/ `--dry-run`（纯预览不写）/ `--strict`（末首尾差超阈值时报错而非告警）；
   - 导出记录清单 `tracklist.csv`（`index,title,start,end,duration,output_file`），逐产物 ffprobe 时长核验由既有 `verify` 思路承接；
   - 领域真值 vs 配置分层：末首尾差告警阈值 60s、seek 摆放（`-ss` 在 `-i` 前）为领域常量；配置旋钮全走 `config.ts`，`source` 路径是 spec 数据。

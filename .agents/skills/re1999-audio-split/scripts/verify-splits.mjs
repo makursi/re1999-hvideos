@@ -67,16 +67,15 @@ function loadTracklist(path) {
 
 /**
  * Derive each song's [start, end, filename] exactly as the pipeline does:
- * end = next start, final end = source real duration; filename zero-padded
- * `NN - Title.m4a`.
+ * end = next start, final end = source real duration; filename = bare title
+ * `Title.m4a` (no index prefix).
  */
 function resolveTracks(tl, sourceDuration) {
   const starts = tl.tracks.map(t => parseTime(t.start))
-  const width = String(tl.tracks.length).length
   return tl.tracks.map((track, i) => {
     const start = starts[i]
     const end = i + 1 < tl.tracks.length ? starts[i + 1] : sourceDuration
-    const filename = `${String(i + 1).padStart(width, '0')} - ${track.title}.m4a`
+    const filename = `${track.title}.m4a`
     return { title: track.title, start, end, filename }
   })
 }
